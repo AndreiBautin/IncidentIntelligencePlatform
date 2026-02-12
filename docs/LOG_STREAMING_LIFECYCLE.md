@@ -2,8 +2,8 @@
 
 ## When the stream runs
 
-- **Production / read-only**: The log stream is tied to SSE subscribers. When the **first** client connects to `/api/stream/incidents`, the simulator starts automatically (using config from `Simulation`). When the **last** client disconnects, the simulator stops. No manual “Start stream” in the UI; opening the dashboard is enough to get live data.
-- **Development**: You can still start/stop the stream manually via the dashboard or `POST /api/simulation/start` and `POST /api/simulation/stop`.
+- **Production / read-only**: The log stream is tied to SSE subscribers. When the **first** client connects to `/api/stream/incidents`, the simulator starts automatically (using config from `Simulation`). When the **last** client disconnects, the simulator stops. No Start/Stop button in the UI; opening the dashboard is enough to get live data.
+- **Development**: Opening the dashboard starts the stream automatically (the frontend calls `POST /api/simulation/start` on load). Same retention bounds as production. **Clear all** is available to reset; no Start/Stop button.
 
 ## Frequency cap
 
@@ -18,7 +18,7 @@
 
 | Aspect              | Behavior                                                                 |
 |---------------------|--------------------------------------------------------------------------|
-| Start               | First SSE subscriber (prod) or manual start (dev)                        |
-| Stop                | Last SSE disconnect (prod) or manual stop (dev)                          |
+| Start               | First SSE subscriber (prod) or auto on dashboard load (dev)              |
+| Stop                | Last SSE disconnect (prod); dev has no Stop button, use Clear all to reset |
 | Rate                | Capped by Simulation config (logs/sec, interval)                         |
 | Connection limit    | `Stream:MaxConcurrentSSE` (default 50)                                   |

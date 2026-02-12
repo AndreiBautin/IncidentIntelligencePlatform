@@ -15,8 +15,9 @@ In production, the public deployment is a **read-only dashboard**. Users can vie
   - `POST /api/incidents/{id}/reanalyze`
 - **Frontend**: When built with `NEXT_PUBLIC_READ_ONLY=true`, the UI hides:
   - Settings link
-  - Start stream / Stop stream / Clear all
+  - Clear all
   - Mark complete, Reopen, Reanalyze
+  (In local dev, the stream also starts automatically when the dashboard is opened; dev UI shows Clear all and Settings.)
 
 ## Allowed in production
 

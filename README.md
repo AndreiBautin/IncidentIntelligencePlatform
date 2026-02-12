@@ -37,15 +37,15 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for diagrams and data flow.
    cd web/incidentbrain-web && npm install && npm run dev
    ```
 
-   Open `http://localhost:3000`. On the **Dashboard**, click **Start stream** to run the demo (or in production mode, opening the dashboard auto-starts the stream). Incidents appear live via SSE. Use **Clear all** (dev only) to reset.
+   Open `http://localhost:3000`. The **Dashboard** starts the stream automatically; incidents appear live via SSE. Use **Clear all** (dev only) to reset.
 
 3. **Demo script** (second terminal): `./scripts/demo.ps1` (PowerShell) or `./scripts/demo.sh` (Bash).
 
-4. **Optional Ollama** (dev only): Set `AI:Provider` to `Ollama` in appsettings.Development.json and run Ollama locally. If unavailable, the app falls back to Mock.
+4. **AI (dev)**: Local dev defaults to **Ollama** for summaries; run Ollama locally. If unavailable, the app falls back to Mock. Use **Settings** to switch provider.
 
 ## Docker
 
-- **Local (dev)**: `docker compose up --build` — API at `http://localhost:8080`, Web at `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL=http://localhost:8080` for browser calls. If Ollama is running on the host, the API uses it automatically (override configures `host.docker.internal:11434`).
+- **Local (dev)**: `docker compose up --build` — API at `http://localhost:8080`, Web at `http://localhost:3000`. Open the dashboard; the stream starts automatically. Same retention bounds as production. AI defaults to Ollama (override points at `host.docker.internal:11434` when Ollama runs on the host). Use **Clear all** and **Settings** in the UI.
 - **Production**: `docker compose -f docker-compose.prod.yml up --build` — enforces `ASPNETCORE_ENVIRONMENT=Production`, Mock AI only, read-only frontend (`NEXT_PUBLIC_READ_ONLY=true`). No Ollama.
 
 See **[docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md)** for Docker install and first-run.
@@ -53,7 +53,7 @@ See **[docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md)** for Docker install and firs
 ## AI mode
 
 - **Mock** is the default and **only** provider in production. No paid APIs, no hosted LLMs.
-- **Ollama** is allowed only in Development for local experimentation. If Ollama is unavailable, the system falls back to Mock.
+- **Ollama** is the default in Development for local experimentation. If Ollama is unavailable, the system falls back to Mock.
 - Production UI does not expose AI toggles; control endpoints (e.g. PATCH `/api/settings/ai`) are disabled in production.
 
 See **[docs/AI_ABSTRACTION.md](docs/AI_ABSTRACTION.md)** and **[docs/ZERO_COST_DEPLOYMENT.md](docs/ZERO_COST_DEPLOYMENT.md)**.
@@ -121,8 +121,8 @@ See **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** for branch protection and w
 | GET | `/api/simulation/status` | Stream running | Yes |
 | GET | `/api/settings/ai` | Current AI provider | Yes (read-only) |
 | POST | `/api/logs` | Ingest log | No (control) |
-| POST | `/api/simulation/start` | Start stream | No (control) |
-| POST | `/api/simulation/stop` | Stop stream | No (control) |
+| POST | `/api/simulation/start` | Start stream (dashboard auto-calls in dev) | No (control; not registered in prod) |
+| POST | `/api/simulation/stop` | Stop stream | No (control; not registered in prod) |
 | PATCH | `/api/settings/ai` | Set AI provider | No (control) |
 | POST | `/api/admin/clear` | Clear all data | No (control) |
 | PATCH | `/api/incidents/{id}` | Update status | No (control) |

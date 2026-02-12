@@ -130,8 +130,8 @@ All commands below are from the **project root** (the folder that contains `dock
      - Start both containers.
    - You’ll see logs from both the API and the web app. Leave this window open.
 
-   **Using Ollama (optional)**  
-   Start Ollama on your machine (as you do when running without Docker). Run the **same** command: `docker compose up --build`. The override sets the API to Development and points Ollama at `http://host.docker.internal:11434`. In the app, open Settings and choose Ollama if you want AI summaries from Ollama; otherwise the app uses Mock.
+   **Ollama**  
+   Local dev defaults to Ollama for AI summaries. Start Ollama on your machine; the override points the API at `http://host.docker.internal:11434`. If Ollama is not running, the app falls back to Mock. Use **Settings** to switch provider if desired.
 
 4. **Check that it’s running**
    - **API**: open in browser or run:
@@ -139,7 +139,7 @@ All commands below are from the **project root** (the folder that contains `dock
      Invoke-RestMethod -Uri "http://localhost:8080/api/health"
      ```
      You should get a healthy status.
-   - **Web**: open **http://localhost:3000** in your browser. You should see the app (dashboard, etc.).
+   - **Web**: open **http://localhost:3000** in your browser. The stream starts automatically on the Dashboard; incidents appear as they are created. No button to press.
 
 5. **Stop the app**
    - In the terminal where `docker compose up` is running, press **Ctrl+C**.

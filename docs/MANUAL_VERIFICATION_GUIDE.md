@@ -1,6 +1,6 @@
 # Incident Intelligence Platform — Manual Verification Guide
 
-Use this guide to get the app running and see the demo. No manual endpoint testing—just run the backend and (optionally) the frontend. Start the stream from the **Dashboard** (Start stream button) or run the demo script.
+Use this guide to get the app running and see the demo. No manual endpoint testing—just run the backend and (optionally) the frontend. The stream starts automatically when you open the **Dashboard**; or run the demo script for a CLI-only flow.
 
 ---
 
@@ -44,7 +44,7 @@ If you see "Found N incident(s)" and a summary with steps, the backend and demo 
 
 ## Option B: See it running in the browser
 
-Run the API and the Next.js app, then use the UI to start the simulation and watch incidents on the dashboard.
+Run the API and the Next.js app; the stream starts automatically when you open the dashboard.
 
 1. **Stop** any running API.
 
@@ -71,11 +71,11 @@ Run the API and the Next.js app, then use the UI to start the simulation and wat
 
 4. **In the browser**, open **http://localhost:3000**.
 
-5. **Run the demo in the UI:**
-   - On the **Dashboard**, click **Start stream** to run the simulated log stream.
-   - Leave the Dashboard open. After 45–60 seconds you should see one or more incidents (spike/cluster-driven). The list may update live via SSE.
+5. **Watch the demo in the UI:**
+   - The **Dashboard** starts the stream automatically when you open it.
+   - Leave the Dashboard open. After 45–60 seconds you should see one or more incidents (spike/cluster-driven). The list updates live via SSE.
    - Click an incident to see its **AI summary** and **suggested investigation steps**.
-   - Click **Stop stream** when done. Use **Clear all** to reset and run the demo from a fresh slate.
+   - Use **Clear all** to reset and run the demo from a fresh slate.
    - Optionally click **Reanalyze** on an incident. Simulation options (seed, logs/sec) are in **Settings**.
 
 If the dashboard shows incidents with summaries and steps, the end-to-end flow is working.
@@ -104,7 +104,7 @@ From repo root:
 docker compose up --build
 ```
 
-Then open **http://localhost:3000** (set `NEXT_PUBLIC_API_URL=http://localhost:8080` for the browser). On the **Dashboard**, click **Start stream** to run the demo and see incidents. Click **Stop stream** when done. Stop containers with Ctrl+C, then `docker compose down`.
+Then open **http://localhost:3000** (set `NEXT_PUBLIC_API_URL=http://localhost:8080` for the browser). The stream starts automatically on the Dashboard; incidents appear as they are created. Stop containers with Ctrl+C, then `docker compose down`.
 
 ---
 
@@ -135,4 +135,4 @@ The database file existed from an earlier run but had no tables. Stop the API, d
 Start the API first (`dotnet run --project src/IncidentBrain.API`) and wait until you see "Now listening on: ..." before running the script.
 
 **Dashboard shows no incidents**  
-Click **Start stream** on the Dashboard (or run the demo script), wait at least 45–60 seconds for the built-in spike, then refresh or watch the dashboard (SSE may add new incidents automatically).
+The stream starts automatically when you open the Dashboard. Wait at least 45–60 seconds for the built-in spike; incidents will appear via SSE. You can also run the demo script while the dashboard is open.
