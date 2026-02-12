@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useState, useRef, type ReactNode } from "react";
 import { toast } from "sonner";
-import { getIncidents, getIncident, reanalyzeIncident, updateIncidentStatus, getStats, getRecentLogs, startSimulation, stopSimulation, getSimulationStatus, clearAll, READ_ONLY_MODE, type Incident } from "@/lib/api";
+import { getIncidents, getIncident, reanalyzeIncident, updateIncidentStatus, getStats, getRecentLogs, startSimulation, getSimulationStatus, clearAll, READ_ONLY_MODE, type Incident } from "@/lib/api";
 import { useIncidentStream } from "@/hooks/useIncidentStream";
 import {
   AreaChart,
@@ -80,7 +80,6 @@ export default function DashboardPage() {
   const [serviceFilter, setServiceFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [streamRunning, setStreamRunning] = useState(false);
-  const [streamLoading, setStreamLoading] = useState(false);
   const [clearLoading, setClearLoading] = useState(false);
   const [logLines, setLogLines] = useState<{ id: string; timestamp: string; service: string; level: string; message: string }[]>([]);
   const logStreamRef = useRef<HTMLDivElement>(null);
@@ -92,7 +91,7 @@ export default function DashboardPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [reanalyzing, setReanalyzing] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
-  const selectedCardRef = useRef<HTMLButtonElement>(null);
+  const selectedCardRef = useRef<HTMLDivElement>(null);
 
   const refresh = () => {
     const severityNum = severityFilter === "P1" ? 2 : severityFilter === "P2" ? 1 : severityFilter === "P3" ? 0 : undefined;
@@ -125,6 +124,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getSimulationStatus().then((s) => setStreamRunning(s.running)).catch(() => {});
+  }, []);
+
+  // Auto-start stream when dashboard loads (local dev only)
+  useEffect(() => {
+    if (READ_ONLY_MODE) return;
+    let cancelled = false;
+    startSimulation()
+      .then(() => {
+        if (!cancelled) setStreamRunning(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -247,21 +260,6 @@ export default function DashboardPage() {
       toast.error("Failed to update incident(s)");
     } finally {
       setMarkingComplete(false);
-    }
-  };
-
-  const handleStreamToggle = async () => {
-    setStreamLoading(true);
-    try {
-      if (streamRunning) {
-        await stopSimulation();
-        setStreamRunning(false);
-      } else {
-        await startSimulation();
-        setStreamRunning(true);
-      }
-    } finally {
-      setStreamLoading(false);
     }
   };
 
@@ -408,24 +406,14 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">
           {!READ_ONLY_MODE && (
-            <>
-              <button
-                type="button"
-                onClick={handleStreamToggle}
-                disabled={streamLoading}
-                className={`px-3 py-1.5 rounded text-sm font-medium disabled:opacity-50 ${streamRunning ? "bg-rose-600 hover:bg-rose-500" : "bg-emerald-600 hover:bg-emerald-500"}`}
-              >
-                {streamLoading ? "..." : streamRunning ? "Stop stream" : "Start stream"}
-              </button>
-              <button
-                type="button"
-                onClick={handleClear}
-                disabled={clearLoading}
-                className="px-3 py-1.5 rounded text-sm font-medium bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50"
-              >
-                {clearLoading ? "..." : "Clear all"}
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={handleClear}
+              disabled={clearLoading}
+              className="px-3 py-1.5 rounded text-sm font-medium bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50"
+            >
+              {clearLoading ? "..." : "Clear all"}
+            </button>
           )}
           <span className="text-sm text-zinc-500">Status</span>
           <select
@@ -607,7 +595,7 @@ export default function DashboardPage() {
             <div className="text-zinc-500">Loading...</div>
           ) : incidents.length === 0 ? (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
-              {READ_ONLY_MODE ? "No incidents yet." : "No incidents yet. Click Start stream to run the demo."}
+              {READ_ONLY_MODE ? "No incidents yet." : "No incidents yet. Stream runs automatically."}
             </div>
           ) : (
             <div className="space-y-2">
