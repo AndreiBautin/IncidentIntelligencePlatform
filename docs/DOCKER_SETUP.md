@@ -130,6 +130,9 @@ All commands below are from the **project root** (the folder that contains `dock
      - Start both containers.
    - You’ll see logs from both the API and the web app. Leave this window open.
 
+   **Using Ollama (optional)**  
+   Start Ollama on your machine (as you do when running without Docker). Run the **same** command: `docker compose up --build`. The override sets the API to Development and points Ollama at `http://host.docker.internal:11434`. In the app, open Settings and choose Ollama if you want AI summaries from Ollama; otherwise the app uses Mock.
+
 4. **Check that it’s running**
    - **API**: open in browser or run:
      ```powershell
@@ -159,6 +162,8 @@ All commands below are from the **project root** (the folder that contains `dock
 | View logs (both services) | `docker compose logs -f` |
 | View API logs only | `docker compose logs -f api` |
 | Rebuild after code changes | `docker compose up --build` (or `docker compose build` then `docker compose up`) |
+
+With Ollama: start Ollama on the host, then the same command (`docker compose up --build`).
 
 ---
 
@@ -202,5 +207,6 @@ All commands below are from the **project root** (the folder that contains `dock
 3. Start Docker Desktop and verify with `docker --version`, `docker compose version`, and `docker run hello-world`.
 4. In the project root: `docker compose up --build`, then open http://localhost:3000 and http://localhost:8080/api/health.
 5. Use `docker compose down` to stop.
+6. Optional: start Ollama on the host to use it from the API; same command.
 
 After this, you have everything you need to run the Incident Intelligence Platform with Docker.

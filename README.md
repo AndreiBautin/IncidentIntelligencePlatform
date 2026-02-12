@@ -45,7 +45,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for diagrams and data flow.
 
 ## Docker
 
-- **Local (dev)**: `docker compose up --build` — API at `http://localhost:8080`, Web at `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL=http://localhost:8080` for browser calls.
+- **Local (dev)**: `docker compose up --build` — API at `http://localhost:8080`, Web at `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL=http://localhost:8080` for browser calls. If Ollama is running on the host, the API uses it automatically (override configures `host.docker.internal:11434`).
 - **Production**: `docker compose -f docker-compose.prod.yml up --build` — enforces `ASPNETCORE_ENVIRONMENT=Production`, Mock AI only, read-only frontend (`NEXT_PUBLIC_READ_ONLY=true`). No Ollama.
 
 See **[docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md)** for Docker install and first-run.

@@ -1,0 +1,7 @@
+# Local dev: use Development and Ollama on host (Docker Desktop: host.docker.internal).
+# docker compose up --build merges this automatically. Production uses docker-compose.prod.yml.
+services:
+  api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AI__Ollama__BaseUrl=http://host.docker.internal:11434
