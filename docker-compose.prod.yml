@@ -1,0 +1,36 @@
+# Production compose: Mock AI only, read-only mode, no Ollama.
+# Run: docker compose -f docker-compose.prod.yml up --build
+# For browser-to-API calls, set NEXT_PUBLIC_API_URL to the URL the browser uses (e.g. http://localhost:8080 for local).
+# Set Cors:AllowedOrigins in api environment to your frontend origin(s).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__Default=Data Source=/data/incidentbrain.db
+    volumes:
+      - incident-data:/data
+
+  web:
+    build:
+      context: ./web/incidentbrain-web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL=http://localhost:8080
+        NEXT_PUBLIC_READ_ONLY=true
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_READ_ONLY=true
+    depends_on:
+      - api
+
+volumes:
+  incident-data:

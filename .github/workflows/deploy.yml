@@ -1,0 +1,25 @@
+# Optional: deploy to free-tier hosting (Fly.io, Render, etc.).
+# Configure GitHub Secrets (e.g. FLY_API_TOKEN, RENDER_API_KEY) and uncomment/enable the job.
+# Ensure ASPNETCORE_ENVIRONMENT=Production and NEXT_PUBLIC_READ_ONLY=true for production builds.
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Build]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Deploy (placeholder)
+    runs-on: ubuntu-latest
+    if: workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Add your free-tier deploy steps here (e.g. Fly.io, Render). Use GitHub Secrets for tokens."
+        # Example for Fly.io (requires FLY_API_TOKEN secret):
+        # - uses: superfly/flyctl-actions/setup-flyctl@master
+        # - run: flyctl deploy --remote-only
+        #   working-directory: .
+        #   env: FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -1,0 +1,63 @@
+# Build / output
+bin/
+obj/
+[Bb]uild/
+[Oo]ut/
+.next/
+out/
+node_modules/
+*.dll
+*.pdb
+*.exe
+*.cache
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Env / secrets (never commit)
+.env
+.env.local
+.env.*.local
+*.pfx
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# NuGet / npm
+packages/
+.nuget/
+.npm/
+*.nupkg
+
+# Test / coverage
+[Tt]est[Rr]esult*/
+[Cc]overage/
+*.trx
+*.coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.swp
+*.swo
+*~
+.cursor/
