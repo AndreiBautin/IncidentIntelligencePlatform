@@ -146,7 +146,7 @@ app.MapPost("/api/logs", async (LogEntryRequest body, IIncidentStore store) =>
     var service = RequestValidation.Sanitize(body.Service, RequestValidation.MaxServiceLength);
     if (string.IsNullOrEmpty(service)) service = "unknown";
     var level = RequestValidation.Sanitize(body.Level, RequestValidation.MaxLevelLength);
-    if (string.IsNullOrEmpty(level)) service = "info";
+    if (string.IsNullOrEmpty(level)) level = "info";
     var message = RequestValidation.Sanitize(body.Message, RequestValidation.MaxMessageLength);
     var entry = new LogEntry
     {
