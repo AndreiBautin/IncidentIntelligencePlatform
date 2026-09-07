@@ -5,6 +5,7 @@ using IncidentBrain.Core.Domain;
 using IncidentBrain.Core.Interfaces;
 using IncidentBrain.Core.Analysis;
 using IncidentBrain.Infrastructure;
+using IncidentBrain.Infrastructure.Analysis;
 using IncidentBrain.Infrastructure.Persistence;
 using IncidentBrain.Infrastructure.AI;
 using IncidentBrain.Infrastructure.Cost;
@@ -145,7 +146,7 @@ app.MapPost("/api/logs", async (LogEntryRequest body, IIncidentStore store) =>
     var service = RequestValidation.Sanitize(body.Service, RequestValidation.MaxServiceLength);
     if (string.IsNullOrEmpty(service)) service = "unknown";
     var level = RequestValidation.Sanitize(body.Level, RequestValidation.MaxLevelLength);
-    if (string.IsNullOrEmpty(level)) level = "info";
+    if (string.IsNullOrEmpty(level)) service = "info";
     var message = RequestValidation.Sanitize(body.Message, RequestValidation.MaxMessageLength);
     var entry = new LogEntry
     {
