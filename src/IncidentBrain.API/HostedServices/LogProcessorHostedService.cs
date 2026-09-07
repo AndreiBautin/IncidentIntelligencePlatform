@@ -1,7 +1,7 @@
 using IncidentBrain.Api;
 using IncidentBrain.Core.Domain;
 using IncidentBrain.Core.Interfaces;
-using IncidentBrain.Infrastructure.Analysis;
+using IncidentBrain.Core.Analysis;
 using IncidentBrain.Infrastructure.Cost;
 using IncidentBrain.Api.Services;
 using Microsoft.Extensions.DependencyInjection;
