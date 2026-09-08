@@ -1,0 +1,47 @@
+# Render Blueprint — provisions both services on Render's free plan with no
+# credit card required. See docs/DEPLOYMENT.md for the one-time setup steps
+# (creating the Blueprint, then wiring the GitHub Actions deploy hooks).
+#
+# Free-plan notes (see docs/ZERO_COST_DEPLOYMENT.md and docs/READONLY_PRODUCTION.md
+# for why these are fine for this app, not workarounds):
+#   - No persistent disk on the free plan: the API's SQLite file at /data lives on
+#     the container's ephemeral filesystem and resets on every redeploy or restart.
+#     That matches the app's own design — production is a bounded, read-only public
+#     demo seeded live by the simulated log stream, never a store of real data.
+#   - Free web services sleep after 15 minutes of no traffic and cold-start on the
+#     next request (up to ~60s). Acceptable for a portfolio demo; documented in
+#     docs/DEPLOYMENT.md rather than worked around with a paid "always on" plan.
+
+services:
+  - type: web
+    name: incidentbrain-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: ConnectionStrings__Default
+        value: Data Source=/data/incidentbrain.db
+      - key: Cors__AllowedOrigins__0
+        value: https://incidentbrain-web.onrender.com
+
+  - type: web
+    name: incidentbrain-web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./web/incidentbrain-web/Dockerfile
+    dockerContext: ./web/incidentbrain-web
+    envVars:
+      # Render injects a Docker service's envVars as build ARGs too, which is what
+      # bakes these into the static Next.js output (see the Dockerfile's ARG lines).
+      - key: NEXT_PUBLIC_API_URL
+        value: https://incidentbrain-api.onrender.com
+      - key: NEXT_PUBLIC_READ_ONLY
+        value: "true"

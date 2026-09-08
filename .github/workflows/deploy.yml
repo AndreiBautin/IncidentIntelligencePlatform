@@ -1,25 +1,77 @@
-# Optional: deploy to free-tier hosting (Fly.io, Render, etc.).
-# Configure GitHub Secrets (e.g. FLY_API_TOKEN, RENDER_API_KEY) and uncomment/enable the job.
-# Ensure ASPNETCORE_ENVIRONMENT=Production and NEXT_PUBLIC_READ_ONLY=true for production builds.
+# Deploys to Render (free plan, no credit card) after the same verification the
+# Build workflow runs. See docs/DEPLOYMENT.md for the one-time Render setup this
+# depends on: creating the Blueprint from render.yaml, then adding two repository
+# secrets (RENDER_DEPLOY_HOOK_API, RENDER_DEPLOY_HOOK_WEB) and two repository
+# variables (RENDER_API_URL, RENDER_WEB_URL). Until those exist, this workflow
+# still runs and still verifies every push to main — it just skips the deploy and
+# smoke-test steps with a clear message, rather than failing.
 
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: [Build]
+  push:
     branches: [main]
-    types: [completed]
+  workflow_dispatch: {}
 
 jobs:
+  verify:
+    name: Verify
+    uses: ./.github/workflows/build.yml
+
   deploy:
-    name: Deploy (placeholder)
+    name: Deploy to Render
+    needs: verify
     runs-on: ubuntu-latest
-    if: workflow_run.conclusion == 'success'
     steps:
-      - uses: actions/checkout@v4
-      - run: echo "Add your free-tier deploy steps here (e.g. Fly.io, Render). Use GitHub Secrets for tokens."
-        # Example for Fly.io (requires FLY_API_TOKEN secret):
-        # - uses: superfly/flyctl-actions/setup-flyctl@master
-        # - run: flyctl deploy --remote-only
-        #   working-directory: .
-        #   env: FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Trigger API deploy
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_API }}" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_API secret not set — skipping deploy. See docs/DEPLOYMENT.md."
+            exit 0
+          fi
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+
+      - name: Trigger web deploy
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_WEB secret not set — skipping deploy. See docs/DEPLOYMENT.md."
+            exit 0
+          fi
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}"
+
+  smoke-test:
+    name: Smoke test live URL
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for API health, then check the dashboard responds
+        run: |
+          if [ -z "${{ vars.RENDER_API_URL }}" ] || [ -z "${{ vars.RENDER_WEB_URL }}" ]; then
+            echo "::warning::RENDER_API_URL / RENDER_WEB_URL repository variables not set — skipping smoke test. See docs/DEPLOYMENT.md."
+            exit 0
+          fi
+
+          api="${{ vars.RENDER_API_URL }}"
+          web="${{ vars.RENDER_WEB_URL }}"
+
+          echo "Polling $api/api/health (Render free plan cold-starts can take ~60s)..."
+          for i in $(seq 1 20); do
+            body=$(curl -fsS "$api/api/health" || true)
+            if echo "$body" | grep -q '"status":"healthy"'; then
+              echo "API healthy: $body"
+              break
+            fi
+            if [ "$i" -eq 20 ]; then
+              echo "::error::API never reported healthy at $api/api/health"
+              exit 1
+            fi
+            sleep 15
+          done
+
+          echo "Checking $web ..."
+          web_body=$(curl -fsS "$web")
+          if ! echo "$web_body" | grep -qi "<!DOCTYPE html>"; then
+            echo "::error::$web did not return an HTML page"
+            exit 1
+          fi
+          echo "Web app responded with HTML."

@@ -1,0 +1,6 @@
+# DOCKER_SETUP.md documents a Windows workflow; CI (build.yml, deploy.yml)
+# runs on ubuntu-latest. Without this, a formatting/whitespace-sensitive
+# check can pass locally on Windows (CRLF) and fail in CI (expects LF), or
+# vice versa — normalize line endings to LF in the repo and let each
+# checkout convert back to the platform default.
+* text=auto eol=lf

@@ -5,10 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call: {}
 
 jobs:
   build:
-    name: Build API and Frontend
+    name: Build, test, and audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,11 +19,26 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Restore API
-        run: dotnet restore src/IncidentBrain.API/IncidentBrain.API.csproj
+      - name: Restore solution
+        run: dotnet restore IncidentBrain.sln
 
-      - name: Build API
-        run: dotnet build src/IncidentBrain.API/IncidentBrain.API.csproj -c Release --no-restore
+      - name: Build solution
+        run: dotnet build IncidentBrain.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test IncidentBrain.sln -c Release --no-build --logger "console;verbosity=normal"
+
+      - name: .NET dependency audit (high+)
+        # GHSA-2m69-gcr7-jv3q (SQLitePCLRaw.lib.e_sqlite3, CVE-2025-6965) has no upstream fix
+        # available as of this writing and is an accepted, documented risk — see docs/SECURITY.md.
+        # Any other High/Critical advisory fails the build.
+        run: |
+          dotnet list src/IncidentBrain.API/IncidentBrain.API.csproj package --vulnerable --include-transitive > nuget-audit.txt
+          cat nuget-audit.txt
+          if grep -Ei "High|Critical" nuget-audit.txt | grep -v "GHSA-2m69-gcr7-jv3q"; then
+            echo "::error::Unaccepted High/Critical NuGet vulnerability found (see above)."
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,11 +47,34 @@ jobs:
           cache: "npm"
           cache-dependency-path: web/incidentbrain-web/package-lock.json
 
-      - name: Install frontend dependencies
+      - name: Install frontend dependencies (frozen lockfile)
         run: npm ci --prefix web/incidentbrain-web
 
-      - name: Build frontend
+      - name: npm audit (high+, with documented exceptions)
+        run: |
+          npm audit --prefix web/incidentbrain-web --json > audit.json || true
+          node scripts/ci/npm-audit-gate.mjs < audit.json
+
+      - name: Build frontend (default config)
         run: npm run build --prefix web/incidentbrain-web
         env:
           NEXT_PUBLIC_API_URL: https://api.example.com
           NEXT_PUBLIC_READ_ONLY: "false"
+
+      - name: Build frontend (read-only production config)
+        run: npm run build --prefix web/incidentbrain-web
+        env:
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          NEXT_PUBLIC_READ_ONLY: "true"
+
+  secret-scan:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

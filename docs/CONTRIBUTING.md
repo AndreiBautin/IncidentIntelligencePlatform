@@ -19,10 +19,19 @@
 On the repository, configure branch protection for `main`:
 
 - **Require a pull request** before merging.
-- **Require status checks to pass** (e.g. the GitHub Actions build job).
-- Do **not** require multiple reviewers or code owner reviews.
+- **Require status checks to pass** — the **Build** workflow's job(s) only. Do
+  **not** add the **Deploy** workflow (or any of its jobs) as a required
+  check: it only runs on push to `main`, never on a PR, so requiring it
+  deadlocks every PR waiting on a check that cannot run yet.
+- Do **not** require multiple reviewers or code owner reviews — on a
+  single-maintainer repo, nobody can approve their own PR, so this deadlocks
+  every PR the maintainer opens.
 - Do **not** require linear history.
-- Optionally allow administrators to bypass (useful for solo workflow).
+- **Block force-push and branch deletion** on `main` — this is the actual
+  protection; leave "include administrators" off so the maintainer keeps a
+  direct-push escape hatch. There is no local pre-push hook in this repo
+  enforcing checks before a push reaches GitHub — CI on the PR is the only
+  gate today.
 
 ## Local setup
 

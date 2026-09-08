@@ -2,6 +2,8 @@
 
 A production-grade starter for a mini observability + AI reasoning layer. **Runs fully offline in production**: no API keys, no paid services, no hosted LLMs. Optional local Ollama for development only.
 
+**Live demo**: not yet deployed. The deploy pipeline (`.github/workflows/deploy.yml`, Render, no credit card) is built and CI-verified; it needs one manual step — creating a free Render account and wiring two secrets — before it publishes anywhere. See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for exactly what's left. Until then, run it locally with Docker (below) in a couple of minutes.
+
 ## System overview
 
 The platform ingests log streams, clusters similar errors (TF-IDF + cosine similarity), detects spikes, and creates **incidents** with AI-generated summaries and investigation steps. The dashboard shows incidents in real time via Server-Sent Events (SSE). Production runs in **read-only** mode: public users see a live, bounded dashboard without control over the stream or data.
@@ -76,8 +78,9 @@ See **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ## CI/CD
 
-- **Build**: GitHub Actions workflow (`.github/workflows/build.yml`) runs on push/PR to `main` — restores and builds the API and frontend. Use as required status check for branch protection.
-- **Deploy**: Optional deploy workflow (`.github/workflows/deploy.yml`) placeholder; add steps for your free-tier host (e.g. Fly.io, Render). Store secrets in GitHub Secrets only.
+- **Build**: GitHub Actions workflow (`.github/workflows/build.yml`) runs on push/PR to `main` — restores, builds, and **tests** the API; audits .NET and npm dependencies at High/Critical (with two documented, currently-unfixable exceptions — see [SECURITY.md](docs/SECURITY.md)); scans full git history for secrets; builds the frontend under both configurations that ship. Use its job(s) as the required status check for branch protection — **not** the Deploy workflow, which only runs on push to `main` and would deadlock every PR if required.
+- **Deploy**: `.github/workflows/deploy.yml` runs on push to `main`. It calls the Build workflow as a job dependency (a red build never deploys), triggers two Render deploy hooks, then polls the live health endpoint and fetches the site before declaring success. See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for the one manual setup step this depends on and why Render was chosen over Fly.io/Railway.
+- **Dependencies**: `.github/dependabot.yml` opens weekly grouped PRs for NuGet, npm, and the GitHub Actions used in CI.
 
 See **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** for branch protection and workflow (feature branches, conventional commits, PRs).
 
@@ -148,3 +151,6 @@ dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj
 - [CONTRIBUTING](docs/CONTRIBUTING.md) — Workflow, branch protection
 - [DOCKER_SETUP](docs/DOCKER_SETUP.md) — Docker install and run
 - [MANUAL_VERIFICATION_GUIDE](docs/MANUAL_VERIFICATION_GUIDE.md) — Verification checklists
+- [DEPLOYMENT](docs/DEPLOYMENT.md) — Render setup, CI/CD, troubleshooting
+- [INTERVIEW_GUIDE](docs/INTERVIEW_GUIDE.md) — How to talk about this project
+- [PRODUCTIONIZATION_ASSESSMENT](docs/PRODUCTIONIZATION_ASSESSMENT.md) — Gaps and status
