@@ -1,5 +1,5 @@
 using IncidentBrain.Core.Domain;
-using IncidentBrain.Infrastructure.Analysis;
+using IncidentBrain.Core.Analysis;
 using Xunit;
 
 namespace IncidentBrain.Tests;

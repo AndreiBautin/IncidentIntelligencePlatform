@@ -1,6 +1,6 @@
 using IncidentBrain.Core.Domain;
 
-namespace IncidentBrain.Infrastructure.Analysis;
+namespace IncidentBrain.Core.Analysis;
 
 public class SpikeDetectionEngine
 {
