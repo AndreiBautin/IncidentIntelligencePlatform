@@ -81,6 +81,7 @@ public class RateLimitMiddleware
     {
         var path = context.Request.Path.Value ?? "";
         var method = context.Request.Method;
+        if (path.StartsWith("/api/ingest", StringComparison.OrdinalIgnoreCase) && method == "POST") return true;
         if (path.StartsWith("/api/logs", StringComparison.OrdinalIgnoreCase) && path.Length > 8 && method == "POST") return true;
         if (path.StartsWith("/api/simulation/start", StringComparison.OrdinalIgnoreCase) && method == "POST") return true;
         if (path.StartsWith("/api/simulation/stop", StringComparison.OrdinalIgnoreCase) && method == "POST") return true;
