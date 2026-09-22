@@ -300,6 +300,8 @@ app.MapGet("/api/stream/incidents", async (HttpContext ctx, IncidentStreamBroadc
 
 app.Run();
 
+public partial class Program { }
+
 // ReSharper disable once ClassNeverInstantiated.Global
 public record LogEntryRequest(DateTime? Timestamp, string? Service, string? Level, string? Message);
 
