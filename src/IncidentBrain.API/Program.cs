@@ -95,8 +95,6 @@ var isProduction = app.Environment.IsProduction();
 if (isProduction)
 {
     app.UseHsts();
-    // Render terminates TLS at the edge and speaks HTTP to the container.
-    // Forcing HTTPS redirect inside the container 301s the health check.
     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT")))
         app.UseHttpsRedirection();
 }
@@ -168,6 +166,8 @@ app.MapGet("/api/incidents/{id}", async (string id, IIncidentStore store) =>
     var incident = await store.GetByIdAsync(id);
     return incident is null ? Results.NotFound() : Results.Ok(incident);
 });
+
+IngestEndpoints.Map(app);
 
 if (!isProduction)
 {
@@ -302,17 +302,12 @@ app.Run();
 
 public partial class Program { }
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record LogEntryRequest(DateTime? Timestamp, string? Service, string? Level, string? Message);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record SimulationStartRequest(int? Seed, int? LogsPerSecond, int? LogIntervalMs, int? SpikeDelaySeconds, int? SpikeDurationSeconds, double? SpikeMultiplier, bool? DeploymentEventInjection, string? IncidentSensitivity);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record IncidentFilterQuery(int? Status, int? Severity, DateTime? From, DateTime? To, string? Search, string? Service);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record IncidentStatusUpdateRequest(int? Status);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record AISettingsUpdateRequest(string? Provider);
