@@ -2,28 +2,30 @@
 
 ## API
 
-- **HTTPS**: In production, HTTPS redirection and HSTS are enabled.
-- **Errors**: Detailed exception pages are disabled in production; a global exception middleware returns a generic message and never includes stack traces in responses.
-- **Validation**: Request inputs are validated and sanitized (trim, max length) for logs and filter parameters.
-- **Rate limiting**: Per-IP (or X-Forwarded-For) limits: general requests per second and stricter limits for mutation endpoints per minute.
-- **CORS**: Allowed origins are configured (e.g. in `Cors:AllowedOrigins`); production should list only the frontend origin(s).
-- **SSE**: The `/api/stream/incidents` endpoint only exposes incident events; no internal state or stack traces. Connection count is limited.
+- HTTPS and HSTS in production when the process has an HTTPS port. Render terminates TLS at the edge, so the container skips redirect.
+- Detailed exception pages are off in production. Global exception middleware returns a generic message and never includes stack traces.
+- Request inputs are trimmed and length-capped for logs and filters.
+- Per-IP rate limits: general requests per second, stricter on mutation routes per minute.
+- CORS origins come from `Cors:AllowedOrigins`. Production should list only the frontend origin.
+- `/api/stream/incidents` only emits incident events. Connection count is capped.
 
 ## Access control
 
-- In production, **mutation/control endpoints are not registered**. Only read-only and SSE endpoints are available to the public.
-- No authentication is required for the read-only API; the app is designed for a single-tenant or low-risk public dashboard. For sensitive deployments, add auth (e.g. API keys or OAuth) and keep control endpoints disabled or protected.
+- Mutation and control endpoints are not registered in production. Only reads, SSE, and keyed ingest are public-facing.
+- `POST /api/ingest/logs` requires `X-Ingest-Key`. Compare is constant-time. Empty `Ingest:ApiKey` disables the route (503). Service names must be on the allowlist (`dj-api`, `dj-worker` by default).
+- The public demo has no user auth. Add API keys or OAuth for a private deploy.
 
 ## Docker
 
-- **API**: Multi-stage build; container runs as non-root user; `/data` is used for SQLite.
-- **Frontend**: Multi-stage build; runs as non-root `nextjs` user.
-- **Secrets**: No secrets baked into images; use environment variables or mounts at runtime. Use GitHub Secrets (or equivalent) for deployment tokens.
+- Multi-stage builds. API and frontend run as non-root.
+- No secrets in images. Use environment variables at runtime. Do not put a real ingest key in `render.yaml` or `.env.example`.
 
 ## Dependencies
 
-- NuGet and npm dependencies are updated; high/critical vulnerabilities are addressed. Run `dotnet list package --vulnerable` and `npm audit` periodically.
+CI runs `dotnet list package --vulnerable --include-transitive` and fails the job if NuGet reports any. `npm audit --audit-level=high` runs and is allowed to warn: Next 15.5.12 still has published advisories. Bump to a patched 15.5.x after this PR if you want that gate hard-fail.
+
+`Microsoft.EntityFrameworkCore.Sqlite` 9.0.0 still pulls `SQLitePCLRaw.lib.e_sqlite3` 2.1.x (GHSA-2m69-gcr7-jv3q). Infrastructure and tests pin `SQLitePCLRaw.bundle_e_sqlite3` 3.0.3, which ships SQLite 3.50.4 and drops the flagged package.
 
 ## SQLite
 
-- All queries go through Entity Framework Core (parameterized). No raw SQL with string interpolation.
+All queries go through EF Core (parameterized). No raw SQL with string interpolation.

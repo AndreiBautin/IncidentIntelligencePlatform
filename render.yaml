@@ -1,0 +1,40 @@
+# Render Blueprint. plan: free only. Apply at https://dashboard.render.com/blueprints
+# after connecting this GitHub repo. Two services: API and Next.js dashboard.
+#
+# I cannot click Apply from here. After the first deploy, paste the web URL into the README.
+services:
+  - type: web
+    name: incident-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: ConnectionStrings__Default
+        value: Data Source=/data/incidentbrain.db
+      - key: AI__Provider
+        value: Mock
+      # Empty = ingest disabled (503). After deploy, set the same secret on DJ as Ops__IngestKey.
+      - key: Ingest__ApiKey
+        value: ""
+  - type: web
+    name: incident-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./web/incidentbrain-web/Dockerfile
+    dockerContext: ./web/incidentbrain-web
+    autoDeploy: true
+    envVars:
+      - key: NEXT_PUBLIC_READ_ONLY
+        value: "true"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: incident-api
+          envVarKey: RENDER_EXTERNAL_URL

@@ -3,12 +3,6 @@ using IncidentBrain.Core.Interfaces;
 
 namespace IncidentBrain.Infrastructure.AI;
 
-// TODO: OllamaAIService
-// TODO: AzureOpenAIService
-// TODO: Token counting
-// TODO: Prompt construction
-// TODO: Budget enforcement
-// TODO: Embedding integration
 public class MockAIService : IAIService
 {
     public Task<string> GenerateIncidentSummaryAsync(Incident incident, IReadOnlyList<string> contextPatterns, CancellationToken cancellationToken = default)

@@ -7,40 +7,40 @@ namespace IncidentBrain.Tests;
 public class SimulationReproducibilityTests
 {
     [Fact]
-    public void SameSeed_ProducesDeterministicFirstLogs()
+    public async Task SameSeed_ProducesDeterministicFirstLogs()
     {
         var sim1 = new SimulatedStreamSource();
         var sim2 = new SimulatedStreamSource();
-        var config = new SimulatorConfig { Seed = 12345, LogsPerSecond = 10, SpikeMultiplier = 2, SpikeDurationSeconds = 10, DeploymentEventInjection = false };
+        var config = new SimulatorConfig
+        {
+            Seed = 12345,
+            LogsPerSecond = 20,
+            LogIntervalMs = 0,
+            SpikeDelaySeconds = 60,
+            SpikeDurationSeconds = 10,
+            DeploymentEventInjection = false
+        };
         sim1.Start(config);
         sim2.Start(config);
-
-        var list1 = new List<string>();
-        var list2 = new List<string>();
-        using var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMilliseconds(500));
-        try
-        {
-            _ = ConsumeAsync(sim1, list1, cts.Token);
-            _ = ConsumeAsync(sim2, list2, cts.Token);
-            Thread.Sleep(600);
-        }
-        catch { }
+        var list1 = await TakeMessages(sim1, 3);
+        var list2 = await TakeMessages(sim2, 3);
         sim1.Stop();
         sim2.Stop();
-
-        Assert.True(list1.Count >= 1);
-        Assert.True(list2.Count >= 1);
-        Assert.Equal(list1[0].Length, list2[0].Length);
+        Assert.Equal(3, list1.Count);
+        Assert.Equal(list1, list2);
     }
 
-    private static async Task ConsumeAsync(ILogStreamSimulator sim, List<string> messages, CancellationToken ct)
+    private static async Task<List<string>> TakeMessages(ILogStreamSimulator sim, int count)
     {
-        await foreach (var evt in sim.GetEventStreamAsync(ct))
+        var messages = new List<string>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await foreach (var evt in sim.GetEventStreamAsync(cts.Token))
         {
             if (evt is LogEmittedEvent le)
                 messages.Add(le.Log.Message);
-            if (messages.Count >= 5) break;
+            if (messages.Count >= count)
+                break;
         }
+        return messages;
     }
 }

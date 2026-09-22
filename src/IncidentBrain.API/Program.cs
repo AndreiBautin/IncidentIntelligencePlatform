@@ -95,7 +95,8 @@ var isProduction = app.Environment.IsProduction();
 if (isProduction)
 {
     app.UseHsts();
-    app.UseHttpsRedirection();
+    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT")))
+        app.UseHttpsRedirection();
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -138,6 +139,35 @@ app.MapGet("/api/logs/recent", async (int? count, DateTime? since, IIncidentStor
     var logs = await store.GetRecentLogsAsync(null, limit, since, ct);
     return Results.Ok(logs.Select(l => new { l.Id, l.Timestamp, l.Service, l.Level, l.Message }));
 });
+
+app.MapGet("/api/simulation/status", (ILogStreamSimulator simulator) =>
+    Results.Ok(new { running = simulator.IsRunning }));
+
+app.MapGet("/api/settings/ai", (IAIProviderState aiState) =>
+    Results.Ok(new { provider = aiState.Provider }));
+
+app.MapGet("/api/incidents", async ([AsParameters] IncidentFilterQuery q, IIncidentStore store) =>
+{
+    var filter = new IncidentFilter();
+    if (q.Status.HasValue) filter.Status = (IncidentStatus)q.Status.Value;
+    if (q.Severity.HasValue) filter.Severity = (Severity)q.Severity.Value;
+    if (q.From.HasValue) filter.From = q.From;
+    if (q.To.HasValue) filter.To = q.To;
+    var search = RequestValidation.Sanitize(q.Search, RequestValidation.MaxSearchLength);
+    if (!string.IsNullOrEmpty(search)) filter.Search = search;
+    var service = RequestValidation.Sanitize(q.Service, RequestValidation.MaxServiceLength);
+    if (!string.IsNullOrEmpty(service)) filter.Service = service;
+    var list = await store.ListAsync(filter);
+    return Results.Ok(list);
+});
+
+app.MapGet("/api/incidents/{id}", async (string id, IIncidentStore store) =>
+{
+    var incident = await store.GetByIdAsync(id);
+    return incident is null ? Results.NotFound() : Results.Ok(incident);
+});
+
+IngestEndpoints.Map(app);
 
 if (!isProduction)
 {
@@ -187,12 +217,6 @@ app.MapPost("/api/simulation/stop", (ILogStreamSimulator simulator, ISimulationR
     return Results.Ok(new { status = "stopped" });
 });
 
-app.MapGet("/api/simulation/status", (ILogStreamSimulator simulator) =>
-    Results.Ok(new { running = simulator.IsRunning }));
-
-app.MapGet("/api/settings/ai", (IAIProviderState aiState) =>
-    Results.Ok(new { provider = aiState.Provider }));
-
 app.MapPatch("/api/settings/ai", async (HttpContext ctx, IAIProviderState aiState) =>
 {
     var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -210,27 +234,6 @@ app.MapPost("/api/admin/clear", async (IIncidentStore store, CancellationToken c
 {
     await store.ClearAllAsync(ct);
     return Results.Ok(new { cleared = true });
-});
-
-app.MapGet("/api/incidents", async ([AsParameters] IncidentFilterQuery q, IIncidentStore store) =>
-{
-    var filter = new IncidentFilter();
-    if (q.Status.HasValue) filter.Status = (IncidentStatus)q.Status.Value;
-    if (q.Severity.HasValue) filter.Severity = (Severity)q.Severity.Value;
-    if (q.From.HasValue) filter.From = q.From;
-    if (q.To.HasValue) filter.To = q.To;
-    var search = RequestValidation.Sanitize(q.Search, RequestValidation.MaxSearchLength);
-    if (!string.IsNullOrEmpty(search)) filter.Search = search;
-    var service = RequestValidation.Sanitize(q.Service, RequestValidation.MaxServiceLength);
-    if (!string.IsNullOrEmpty(service)) filter.Service = service;
-    var list = await store.ListAsync(filter);
-    return Results.Ok(list);
-});
-
-app.MapGet("/api/incidents/{id}", async (string id, IIncidentStore store) =>
-{
-    var incident = await store.GetByIdAsync(id);
-    return incident is null ? Results.NotFound() : Results.Ok(incident);
 });
 
 app.MapPatch("/api/incidents/{id}", async (string id, IncidentStatusUpdateRequest body, IIncidentStore store, IncidentStreamBroadcaster broadcaster, CancellationToken ct) =>
@@ -297,17 +300,14 @@ app.MapGet("/api/stream/incidents", async (HttpContext ctx, IncidentStreamBroadc
 
 app.Run();
 
-// ReSharper disable once ClassNeverInstantiated.Global
+public partial class Program { }
+
 public record LogEntryRequest(DateTime? Timestamp, string? Service, string? Level, string? Message);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record SimulationStartRequest(int? Seed, int? LogsPerSecond, int? LogIntervalMs, int? SpikeDelaySeconds, int? SpikeDurationSeconds, double? SpikeMultiplier, bool? DeploymentEventInjection, string? IncidentSensitivity);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record IncidentFilterQuery(int? Status, int? Severity, DateTime? From, DateTime? To, string? Search, string? Service);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record IncidentStatusUpdateRequest(int? Status);
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public record AISettingsUpdateRequest(string? Provider);

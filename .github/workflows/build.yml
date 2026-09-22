@@ -8,21 +8,66 @@ on:
 
 jobs:
   build:
-    name: Build API and Frontend
+    name: Build, test, audit, secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
 
-      - name: Restore API
-        run: dotnet restore src/IncidentBrain.API/IncidentBrain.API.csproj
+      - name: Restore
+        run: |
+          dotnet restore src/IncidentBrain.API/IncidentBrain.API.csproj
+          dotnet restore tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj
+
+      - name: NuGet vulnerability audit
+        run: |
+          dotnet list src/IncidentBrain.API/IncidentBrain.API.csproj package --vulnerable --include-transitive --format json > nuget-audit.json || true
+          if grep -q '"vulnerabilities"' nuget-audit.json && grep -qv '"vulnerabilities": \[\]' nuget-audit.json; then
+            cat nuget-audit.json
+            echo "NuGet reported vulnerabilities"
+            exit 1
+          fi
+          echo "No NuGet high-or-above vulnerabilities reported"
 
       - name: Build API
         run: dotnet build src/IncidentBrain.API/IncidentBrain.API.csproj -c Release --no-restore
+
+      - name: Test with coverage
+        run: dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj -c Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          files = glob.glob('coverage/**/coverage.cobertura.xml', recursive=True)
+          if not files:
+              print('No cobertura file')
+              raise SystemExit(0)
+          root = ET.parse(files[0]).getroot()
+          line = float(root.attrib.get('line-rate', 0))
+          branch = float(root.attrib.get('branch-rate', 0))
+          print(f'line-rate={line:.1%} branch-rate={branch:.1%}')
+          for pkg in root.findall('.//package'):
+              name = pkg.attrib.get('name', '')
+              lr = float(pkg.attrib.get('line-rate', 0))
+              if 'Core' in name or 'Infrastructure' in name or 'Api' in name or 'API' in name:
+                  print(f'  {name}: {lr:.1%}')
+          PY
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: ignore
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -34,8 +79,21 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix web/incidentbrain-web
 
+      - name: Frontend read-only contract
+        run: node --test web/incidentbrain-web/lib/readOnlyMode.test.mjs
+
+      - name: npm audit (high)
+        continue-on-error: true
+        run: npm audit --audit-level=high --prefix web/incidentbrain-web
+
       - name: Build frontend
         run: npm run build --prefix web/incidentbrain-web
         env:
           NEXT_PUBLIC_API_URL: https://api.example.com
-          NEXT_PUBLIC_READ_ONLY: "false"
+          NEXT_PUBLIC_READ_ONLY: "true"
+
+      - name: Secret scan
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o gitleaks.tgz
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks detect --source . --no-banner --exit-code 1

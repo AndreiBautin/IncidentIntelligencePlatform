@@ -25,11 +25,13 @@ In production, the public deployment is a **read-only dashboard**. Users can vie
 - `GET /api/incidents`, `GET /api/incidents/{id}`
 - `GET /api/stream/incidents` (SSE)
 - `GET /api/simulation/status`, `GET /api/settings/ai` (read-only semantics)
+- `POST /api/ingest/logs` when `Ingest:ApiKey` is set. Keyed. Not a browser path. See [INGEST.md](INGEST.md).
 
 ## Stream behavior
 
 - Log generation starts automatically when the first SSE client connects and stops when the last disconnects. No manual start/stop in the UI in read-only mode.
+- Ingested DJ logs sit in the same store. The hosted processor clusters them on the same ten-second tick as simulator logs.
 
 ## Summary
 
-Public users get a **live but bounded** experience: they see real-time incidents and charts without any way to inject data, clear data, change thresholds, or switch AI provider.
+Public users get a **live but bounded** experience: they see real-time incidents and charts without any way to inject data, clear data, change thresholds, or switch AI provider. DJ Visualizer can still write failures through the keyed ingest route.

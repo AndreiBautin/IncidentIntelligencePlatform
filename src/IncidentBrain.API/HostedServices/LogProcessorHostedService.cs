@@ -147,16 +147,9 @@ public class LogProcessorHostedService : BackgroundService
         var clusters = _analyzer.ClusterMessages(recentErrors, _options.ClusterSimilarityThreshold);
         var spikes = _spikeEngine.DetectSpikes(recent);
 
-        var sensitivity = _runtimeState.IncidentSensitivity?.Trim().ToLowerInvariant();
-        var effectiveClusterThreshold = sensitivity switch
-        {
-            "low" => 15,
-            "high" => 5,
-            _ => _options.ClusterSizeThreshold
-        };
-        var spikesToCreate = sensitivity == "low"
-            ? spikes.Where(s => s.Severity == Severity.P1 || s.Severity == Severity.P2).ToList()
-            : spikes;
+        var sensitivity = _runtimeState.IncidentSensitivity;
+        var effectiveClusterThreshold = IncidentCreationPolicy.EffectiveClusterSizeThreshold(sensitivity, _options.ClusterSizeThreshold);
+        var spikesToCreate = IncidentCreationPolicy.SelectSpikes(spikes, sensitivity);
 
         var toCreate = new List<(Incident Incident, IncidentCluster? Cluster)>();
 
@@ -188,7 +181,7 @@ public class LogProcessorHostedService : BackgroundService
                 StartTime = cluster.FirstSeen,
                 ErrorCount = cluster.Count,
                 TopErrorPattern = cluster.RepresentativeMessage,
-                Severity = cluster.Count >= 10 ? Severity.P1 : cluster.Count >= 5 ? Severity.P2 : Severity.P3,
+                Severity = IncidentCreationPolicy.SeverityForClusterSize(cluster.Count),
                 Status = IncidentStatus.Open,
                 ClusterId = cluster.Id,
                 CreatedAt = DateTime.UtcNow,
