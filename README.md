@@ -2,6 +2,18 @@
 
 A production-grade starter for a mini observability + AI reasoning layer. **Runs fully offline in production**: no API keys, no paid services, no hosted LLMs. Optional local Ollama for development only.
 
+## Five minutes
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:3000`. The dashboard starts the log stream when it connects. Wait for an incident card, open it, read the summary. Tests: `dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj`.
+
+Full click path and talking points: **[docs/DEMO_WALKTHROUGH.md](docs/DEMO_WALKTHROUGH.md)**.
+
+This repo is still private. Public toggle: [Settings](https://github.com/AndreiBautin/IncidentIntelligencePlatform/settings).
+
 ## System overview
 
 The platform ingests log streams, clusters similar errors (TF-IDF + cosine similarity), detects spikes, and creates **incidents** with AI-generated summaries and investigation steps. The dashboard shows incidents in real time via Server-Sent Events (SSE). Production runs in **read-only** mode: public users see a live, bounded dashboard without control over the stream or data.
@@ -136,13 +148,14 @@ dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj
 
 ## Documentation
 
+- [DEMO_WALKTHROUGH](docs/DEMO_WALKTHROUGH.md) — Docker click path and talking points
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — Components and data flow
 - [LOG_STREAMING_LIFECYCLE](docs/LOG_STREAMING_LIFECYCLE.md) — When stream starts/stops, caps
 - [CLUSTERING_ENGINE](docs/CLUSTERING_ENGINE.md) — TF-IDF, thresholds
 - [SQLITE_RETENTION](docs/SQLITE_RETENTION.md) — Retention caps and purge order
 - [INCIDENT_LIFECYCLE](docs/INCIDENT_LIFECYCLE.md) — Auto-resolution, caps
 - [AI_ABSTRACTION](docs/AI_ABSTRACTION.md) — Mock vs Ollama, production rules
-- [READONLY_PRODUCTION](docs/READONLY_PRODUCTION.md) — What’s disabled in production
+- [READONLY_PRODUCTION](docs/READONLY_PRODUCTION.md) — What is disabled in production
 - [ZERO_COST_DEPLOYMENT](docs/ZERO_COST_DEPLOYMENT.md) — No paid services, bounded design
 - [SECURITY](docs/SECURITY.md) — HTTPS, CORS, rate limiting, Docker
 - [CONTRIBUTING](docs/CONTRIBUTING.md) — Workflow, branch protection
