@@ -1,42 +1,35 @@
 # Architecture
 
-## High-level overview
+Three projects. Dependencies point inward. `Program.cs` is the only composition root.
 
-The Incident Intelligence Platform is a full-stack observability and incident-intelligence system with a .NET 9 Web API backend, SQLite persistence, and a Next.js frontend.
-
-```mermaid
-flowchart LR
-  subgraph frontend [Frontend]
-    Web[Next.js App]
-  end
-  subgraph api [API]
-    MinAPI[Minimal APIs]
-    SSE[SSE Broadcaster]
-    Hosted[Hosted Services]
-  end
-  subgraph data [Data]
-    SQLite[(SQLite)]
-  end
-  Web -->|REST / SSE| MinAPI
-  MinAPI --> SQLite
-  Hosted --> SQLite
-  Hosted --> SSE
-  SSE --> Web
+```
+web (Next.js) -> IncidentBrain.API -> IncidentBrain.Infrastructure -> IncidentBrain.Core
+                                      IncidentBrain.API -----------> IncidentBrain.Core
 ```
 
-## Components
+`IncidentBrain.Core` has zero package references. That is enforced by `ArchitectureConstraintTests`.
 
-- **API** (`src/IncidentBrain.API`): ASP.NET Core Minimal APIs, health and stats, incidents CRUD, simulation control (dev only in production), SSE endpoint for real-time incident stream. Middleware: correlation ID, exception handling, rate limiting, CORS.
-- **Hosted services**: `LogProcessorHostedService` consumes the log stream, runs TF-IDF clustering and spike detection, creates incidents and enriches them with AI; `RetentionEnforcementHostedService` runs auto-resolution and retention caps.
-- **Core** (`src/IncidentBrain.Core`): Domain (Incident, LogEntry, etc.), interfaces (`IIncidentStore`, `ILogStreamSimulator`, `IAIService`). No external dependencies.
-- **Infrastructure** (`src/IncidentBrain.Infrastructure`): SQLite store, TF-IDF clustering, spike detection, Mock and Ollama AI implementations.
-- **Frontend** (`web/incidentbrain-web`): Next.js App Router, dashboard (incidents, charts, filters), settings (dev only when not read-only), SSE hook for live updates.
+## One request, real files
 
-## Data flow
+An interviewer opens the dashboard. The browser opens `GET /api/stream/incidents` and `GET /api/incidents`.
 
-1. Log stream: Simulated (or future real) logs are produced by `SimulatedStreamSource`. In production, the stream starts when the first SSE client connects and stops when the last disconnects.
-2. Logs are buffered and written to SQLite via `IIncidentStore.AddLogsAsync`.
-3. Periodically, recent logs are clustered (TF-IDF + cosine similarity) and spikes detected; new incidents are created and enriched with AI summaries/steps, then saved and broadcast over SSE.
-4. Retention and auto-resolution run in the background; caps on active/total incidents and log count are enforced at the persistence layer.
+1. `web/incidentbrain-web` (SSE hook) connects to `/api/stream/incidents`.
+2. `src/IncidentBrain.API/Program.cs` maps that route in every environment.
+3. `src/IncidentBrain.API/Services/IncidentStreamBroadcaster.cs` `Subscribe` sees the first client and calls `ILogStreamSimulator.Start`.
+4. `SimulatedStreamSource` (Infrastructure) emits log events.
+5. `src/IncidentBrain.API/HostedServices/LogProcessorHostedService.cs` buffers them and writes through `IIncidentStore.AddLogsAsync`.
+6. Every ten seconds the same hosted service loads recent logs, calls `TfIdfLogAnalyzer` (Infrastructure) and `SpikeDetectionEngine` (Core).
+7. New `Incident` records are enriched by `IAIService` (`MockAIService` in Production) and saved through `IIncidentStore.AddIncidentAsync`.
+8. The broadcaster writes an SSE event. The dashboard calls `GET /api/incidents` (`Program.cs`) and renders the card.
 
-See [LOG_STREAMING_LIFECYCLE.md](LOG_STREAMING_LIFECYCLE.md), [CLUSTERING_ENGINE.md](CLUSTERING_ENGINE.md), [SQLITE_RETENTION.md](SQLITE_RETENTION.md), and [INCIDENT_LIFECYCLE.md](INCIDENT_LIFECYCLE.md) for details.
+Production difference: mutation routes are not mapped. The stream still starts from the first SSE subscriber. See `docs/READONLY_PRODUCTION.md` and `ProductionApiTests`.
+
+## Why the seams exist
+
+- Swap SQLite for Postgres by implementing `IIncidentStore`. Core does not change.
+- Swap the simulator for App Insights or a Service Bus pump by implementing `ILogIngestionSource` / `ILogStreamSimulator`.
+- Swap Mock AI for a paid model by implementing `IAIService`. Production currently forces Mock in `Program.cs`.
+
+## Limits that are honest
+
+SQLite and the in-memory subscriber list are single-process. Two API instances will not share incidents or SSE. That is the cost of a free-host demo. The ports are there so the next store and the next bus do not rewrite the domain.
