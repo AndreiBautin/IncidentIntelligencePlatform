@@ -1,7 +1,11 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+export function isReadOnlyMode(flag: string | undefined): boolean {
+  return flag === "true";
+}
+
 /** When true, hide admin/mutation controls (production read-only dashboard). */
-export const READ_ONLY_MODE = process.env.NEXT_PUBLIC_READ_ONLY === "true";
+export const READ_ONLY_MODE = isReadOnlyMode(process.env.NEXT_PUBLIC_READ_ONLY);
 
 export type Incident = {
   id: string;
