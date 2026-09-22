@@ -20,14 +20,16 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Restore API
-        run: dotnet restore src/IncidentBrain.API/IncidentBrain.API.csproj
+      - name: Restore
+        run: |
+          dotnet restore src/IncidentBrain.API/IncidentBrain.API.csproj
+          dotnet restore tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj
 
       - name: Build API
         run: dotnet build src/IncidentBrain.API/IncidentBrain.API.csproj -c Release --no-restore
 
-      - name: Test
-        run: dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj -c Release --no-restore --verbosity normal
+      - name: Test with coverage
+        run: dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj -c Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory coverage
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -45,7 +47,8 @@ jobs:
           NEXT_PUBLIC_API_URL: https://api.example.com
           NEXT_PUBLIC_READ_ONLY: "true"
 
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Secret scan
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o gitleaks.tgz
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks detect --source . --no-banner --exit-code 1

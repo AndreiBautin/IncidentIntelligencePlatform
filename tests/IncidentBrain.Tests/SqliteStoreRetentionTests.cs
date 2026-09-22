@@ -1,5 +1,6 @@
 using IncidentBrain.Core.Domain;
 using IncidentBrain.Core.Interfaces;
+using IncidentBrain.Infrastructure;
 using IncidentBrain.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -49,7 +50,7 @@ public class SqliteStoreRetentionTests
         await harness.Store.AddIncidentAsync(newerResolved);
         await harness.Store.AddIncidentAsync(open);
         var ids = await harness.Store.GetOldestResolvedIncidentIdsAsync(1);
-        Assert.Equal(new[] { oldResolved.Id }, ids.ToArray());
+        Assert.Equal(oldResolved.Id, Assert.Single(ids));
         await harness.Store.DeleteIncidentsByIdsAsync(ids);
         Assert.Null(await harness.Store.GetByIdAsync(oldResolved.Id));
         Assert.NotNull(await harness.Store.GetByIdAsync(open.Id));
