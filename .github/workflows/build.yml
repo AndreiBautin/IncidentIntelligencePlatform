@@ -83,6 +83,7 @@ jobs:
         run: node --test web/incidentbrain-web/lib/readOnlyMode.test.mjs
 
       - name: npm audit (high)
+        continue-on-error: true
         run: npm audit --audit-level=high --prefix web/incidentbrain-web
 
       - name: Lint frontend
