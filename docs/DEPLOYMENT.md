@@ -21,8 +21,18 @@ Render can build a private GitHub repo if the GitHub account is already connecte
 
 - API: Production, Mock AI, SQLite at `/data/incidentbrain.db`.
 - Web: `NEXT_PUBLIC_READ_ONLY=true`, `NEXT_PUBLIC_API_URL` taken from the API service public URL at build time.
+- `Ingest__ApiKey` starts empty, so keyed ingest is off until you set it.
 
 Free instances have no persistent disk. SQLite resets when the API box sleeps. That is acceptable for a public demo. Do not treat the hosted data as durable.
+
+## After deploy: DJ ingest
+
+1. Generate a long random string.
+2. On `incident-api`, set `Ingest__ApiKey` to that string.
+3. On `dj-visualizer`, set `Ops__IngestKey` to the same string and `Ops__IncidentBrainUrl` to the `incident-api` public origin (no trailing path).
+4. Fail a DJ render. The dashboard should show a `dj-worker` incident once clustering thresholds trip.
+
+Details: [INGEST.md](INGEST.md).
 
 ## Local production check before you apply
 

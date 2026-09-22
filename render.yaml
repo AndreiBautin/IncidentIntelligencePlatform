@@ -20,6 +20,9 @@ services:
         value: Data Source=/data/incidentbrain.db
       - key: AI__Provider
         value: Mock
+      # Empty = ingest disabled (503). After deploy, set the same secret on DJ as Ops__IngestKey.
+      - key: Ingest__ApiKey
+        value: ""
   - type: web
     name: incident-web
     runtime: docker

@@ -24,6 +24,10 @@ An interviewer opens the dashboard. The browser opens `GET /api/stream/incidents
 
 Production difference: mutation routes are not mapped. The stream still starts from the first SSE subscriber. See `docs/READONLY_PRODUCTION.md` and `ProductionApiTests`.
 
+## DJ ingest (second source)
+
+DJ Visualizer's render worker posts job failures to `POST /api/ingest/logs` (`IngestEndpoints.cs`) with `X-Ingest-Key`. Allowed services are `dj-api` and `dj-worker`. Those rows land in the same store with `LogSource.Ingest`. Step 6 above picks them up on the next tick. If the key is unset, the route returns 503 and DJ's sink is a no-op.
+
 ## Why the seams exist
 
 - Swap SQLite for Postgres by implementing `IIncidentStore`. Core does not change.

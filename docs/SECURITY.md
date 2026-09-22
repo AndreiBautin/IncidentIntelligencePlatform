@@ -11,13 +11,14 @@
 
 ## Access control
 
-- Mutation and control endpoints are not registered in production. Only reads and SSE are public.
-- The public demo has no auth. Add API keys or OAuth for a private deploy.
+- Mutation and control endpoints are not registered in production. Only reads, SSE, and keyed ingest are public-facing.
+- `POST /api/ingest/logs` requires `X-Ingest-Key`. Compare is constant-time. Empty `Ingest:ApiKey` disables the route (503). Service names must be on the allowlist (`dj-api`, `dj-worker` by default).
+- The public demo has no user auth. Add API keys or OAuth for a private deploy.
 
 ## Docker
 
 - Multi-stage builds. API and frontend run as non-root.
-- No secrets in images. Use environment variables at runtime.
+- No secrets in images. Use environment variables at runtime. Do not put a real ingest key in `render.yaml` or `.env.example`.
 
 ## Dependencies
 
