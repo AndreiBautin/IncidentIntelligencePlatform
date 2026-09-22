@@ -1,18 +1,30 @@
-# Security
+# Security decisions
 
-Production posture for the public demo.
+## API
 
-- HTTPS and HSTS when the process actually has an HTTPS port. Render terminates TLS at the edge, so the container skips redirect.
-- Global exception middleware. No stack traces in responses.
-- Input sanitizer on search, service, level, and message.
-- Rate limits on general and mutation routes.
-- CORS from configured origins.
-- API and frontend containers run as non-root.
-- Control routes are not registered in Production. See `ProductionApiTests`.
-- Mock AI only in Production. No API keys in the image.
-- `.env.example` is the only env template. No secrets in git.
-- CI runs gitleaks and a NuGet vulnerability listing.
+- HTTPS and HSTS in production when the process has an HTTPS port. Render terminates TLS at the edge, so the container skips redirect.
+- Detailed exception pages are off in production. Global exception middleware returns a generic message and never includes stack traces.
+- Request inputs are trimmed and length-capped for logs and filters.
+- Per-IP rate limits: general requests per second, stricter on mutation routes per minute.
+- CORS origins come from `Cors:AllowedOrigins`. Production should list only the frontend origin.
+- `/api/stream/incidents` only emits incident events. Connection count is capped.
 
-## SQLite native override
+## Access control
 
-`Microsoft.EntityFrameworkCore.Sqlite` 9.0.0 still pulls `SQLitePCLRaw.lib.e_sqlite3` 2.1.x, which NuGet flags as GHSA-2m69-gcr7-jv3q (SQLite before 3.50.2). Both Infrastructure and the test project pin `SQLitePCLRaw.bundle_e_sqlite3` 3.0.3, which ships SourceGear.sqlite3 3.50.4 and drops the flagged package. EF Core has not moved this transitive pin yet.
+- Mutation and control endpoints are not registered in production. Only reads and SSE are public.
+- The public demo has no auth. Add API keys or OAuth for a private deploy.
+
+## Docker
+
+- Multi-stage builds. API and frontend run as non-root.
+- No secrets in images. Use environment variables at runtime.
+
+## Dependencies
+
+CI runs `dotnet list package --vulnerable --include-transitive` and fails the job if NuGet reports any. `npm audit --audit-level=high` runs and is allowed to warn: Next 15.5.12 still has published advisories. Bump to a patched 15.5.x after this PR if you want that gate hard-fail.
+
+`Microsoft.EntityFrameworkCore.Sqlite` 9.0.0 still pulls `SQLitePCLRaw.lib.e_sqlite3` 2.1.x (GHSA-2m69-gcr7-jv3q). Infrastructure and tests pin `SQLitePCLRaw.bundle_e_sqlite3` 3.0.3, which ships SQLite 3.50.4 and drops the flagged package.
+
+## SQLite
+
+All queries go through EF Core (parameterized). No raw SQL with string interpolation.
