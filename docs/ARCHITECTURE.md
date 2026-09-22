@@ -18,7 +18,7 @@ An interviewer opens the dashboard. The browser opens `GET /api/stream/incidents
 3. `src/IncidentBrain.API/Services/IncidentStreamBroadcaster.cs` `Subscribe` sees the first client and calls `ILogStreamSimulator.Start`.
 4. `SimulatedStreamSource` (Infrastructure) emits log events.
 5. `src/IncidentBrain.API/HostedServices/LogProcessorHostedService.cs` buffers them and writes through `IIncidentStore.AddLogsAsync`.
-6. Every ten seconds the same hosted service loads recent logs, calls `TfIdfLogAnalyzer` (Infrastructure) and `SpikeDetectionEngine` (Core).
+6. Every ten seconds the same hosted service loads recent logs, calls `TfIdfLogAnalyzer` (Infrastructure) and `SpikeDetectionEngine` (Core), then `IncidentCreationPolicy` (Core) to decide which spikes and clusters become incidents.
 7. New `Incident` records are enriched by `IAIService` (`MockAIService` in Production) and saved through `IIncidentStore.AddIncidentAsync`.
 8. The broadcaster writes an SSE event. The dashboard calls `GET /api/incidents` (`Program.cs`) and renders the card.
 
@@ -29,6 +29,7 @@ Production difference: mutation routes are not mapped. The stream still starts f
 - Swap SQLite for Postgres by implementing `IIncidentStore`. Core does not change.
 - Swap the simulator for App Insights or a Service Bus pump by implementing `ILogIngestionSource` / `ILogStreamSimulator`.
 - Swap Mock AI for a paid model by implementing `IAIService`. Production currently forces Mock in `Program.cs`.
+- Change who becomes an incident without touching the host: edit `IncidentCreationPolicy`.
 
 ## Limits that are honest
 
