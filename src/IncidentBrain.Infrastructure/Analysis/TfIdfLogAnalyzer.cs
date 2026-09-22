@@ -1,17 +1,36 @@
 using System.Collections.Frozen;
+using System.Text.RegularExpressions;
 using IncidentBrain.Core.Domain;
 using IncidentBrain.Core.Interfaces;
 
 namespace IncidentBrain.Infrastructure.Analysis;
 
 // TODO: Replace with embedding + vector DB
-public class TfIdfLogAnalyzer : ILogAnalyzer
+public partial class TfIdfLogAnalyzer : ILogAnalyzer
 {
     private static readonly char[] SplitChars = { ' ', '\t', '\r', '\n', '.', ',', ':', ';', '!', '?', '-', '_', '(', ')', '[', ']', '{', '}' };
     private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
     {
         "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "is", "it", "as", "by", "with"
     };
+
+    // A real error message is a fixed template plus a per-occurrence identifier (job id, request id,
+    // trace id) - "job {guid} failed: ..." over and over is the common shape, not an edge case. Left
+    // alone, a UUID's hyphens split it into four or five rare sub-tokens whose high IDF weight can
+    // outweigh every word the messages actually share, so messages that are otherwise identical land
+    // just under the similarity threshold and never cluster. Collapsing an id-shaped token to one
+    // placeholder before tokenizing removes the noise while leaving genuinely different wording alone.
+    // Applied to the raw message before splitting: SplitChars includes '-', so a UUID must be collapsed
+    // to a placeholder while it is still one contiguous run, or the split ever reaches its own hyphens.
+    [GeneratedRegex(@"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")]
+    private static partial Regex UuidPattern();
+
+    // Applied per-token after splitting, for an id that has no hyphens to trip the pattern above -
+    // a hex or decimal run six digits or longer reads as an id rather than a word in any error message.
+    [GeneratedRegex(@"^(?:[0-9a-fA-F]{6,}|[0-9]{6,})$")]
+    private static partial Regex HexIdPattern();
+
+    private const string IdPlaceholder = "id";
 
     public IReadOnlyList<IncidentCluster> ClusterMessages(IReadOnlyList<LogEntry> logs, double similarityThreshold = 0.5)
     {
@@ -124,9 +143,11 @@ public class TfIdfLogAnalyzer : ILogAnalyzer
 
     private static IEnumerable<string> Tokenize(string text)
     {
-        return text
+        var withoutUuids = UuidPattern().Replace(text, IdPlaceholder);
+        return withoutUuids
             .Split(SplitChars, StringSplitOptions.RemoveEmptyEntries)
             .Select(w => w.ToLowerInvariant())
+            .Select(w => HexIdPattern().IsMatch(w) ? IdPlaceholder : w)
             .Where(w => w.Length > 1 && !StopWords.Contains(w));
     }
 
