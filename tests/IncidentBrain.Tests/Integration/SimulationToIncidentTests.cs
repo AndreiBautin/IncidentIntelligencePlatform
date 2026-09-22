@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using IncidentBrain.Core.Analysis;
 using IncidentBrain.Core.Domain;
 using IncidentBrain.Core.Interfaces;
 using IncidentBrain.Infrastructure;
