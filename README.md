@@ -12,7 +12,7 @@ Open `http://localhost:3000`. The dashboard starts the log stream when it connec
 
 Full click path and talking points: [docs/DEMO_WALKTHROUGH.md](docs/DEMO_WALKTHROUGH.md).
 
-Not deployed yet — no live demo link exists. `render.yaml` is ready; deploying is a Render blueprint apply away. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Live: [incident-web-5edt.onrender.com](https://incident-web-5edt.onrender.com). Free instance — the first request after 15 minutes idle can take up to a minute to wake it. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## System overview
 
