@@ -4,5 +4,6 @@ public enum LogSource
 {
     FileUpload,
     Api,
-    Simulated
+    Simulated,
+    Ingest
 }
