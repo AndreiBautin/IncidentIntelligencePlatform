@@ -5,9 +5,6 @@ using IncidentBrain.Infrastructure.Persistence;
 
 namespace IncidentBrain.Infrastructure;
 
-// TODO: Cosmos DB replacement
-// TODO: Multi-tenant partitioning
-// TODO: Azure Search integration
 public class SqliteIncidentStore : IIncidentStore
 {
     private readonly AppDbContext _db;
