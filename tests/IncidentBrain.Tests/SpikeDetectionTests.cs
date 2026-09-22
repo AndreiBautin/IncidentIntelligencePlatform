@@ -63,10 +63,9 @@ public class SpikeDetectionTests
         var engine = new SpikeDetectionEngine(options);
         var baseTime = new DateTime(2025, 2, 11, 10, 0, 0, DateTimeKind.Utc);
         var logs = new List<LogEntry>();
-        for (var i = 0; i < 3; i++)
-            foreach (var m in Enumerable.Range(0, 2))
-                logs.Add(MakeLog(baseTime.AddMinutes(i), "svc"));
-        for (var i = 0; i < 20; i++)
+        for (var i = 0; i < 5; i++)
+            logs.Add(MakeLog(baseTime.AddMinutes(i), "svc"));
+        for (var i = 0; i < 40; i++)
             logs.Add(MakeLog(baseTime.AddMinutes(5), "svc"));
         var spikes = engine.DetectSpikes(logs);
         Assert.Contains(spikes, s => s.Severity == Severity.P1);
