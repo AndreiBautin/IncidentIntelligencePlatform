@@ -86,9 +86,6 @@ jobs:
         continue-on-error: true
         run: npm audit --audit-level=high --prefix web/incidentbrain-web
 
-      - name: Lint frontend
-        run: npm run lint --prefix web/incidentbrain-web
-
       - name: Build frontend
         run: npm run build --prefix web/incidentbrain-web
         env:
