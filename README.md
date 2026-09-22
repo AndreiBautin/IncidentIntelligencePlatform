@@ -16,7 +16,7 @@ This repo is still private. Public toggle: [Settings](https://github.com/AndreiB
 
 ## System overview
 
-The platform ingests log streams, clusters similar errors (TF-IDF + cosine similarity), detects spikes, and creates incidents with AI-generated summaries and investigation steps. The dashboard shows incidents in real time via Server-Sent Events (SSE). Production runs in read-only mode: public users see a live, bounded dashboard without control over the stream or data.
+The platform ingests log streams, clusters similar errors (TF-IDF + cosine similarity), detects spikes, and creates incidents with AI-generated summaries and investigation steps. The dashboard shows incidents in real time via Server-Sent Events (SSE). Production runs in read-only mode: public users see a live, bounded dashboard without control over the stream or data. DJ Visualizer can post job failures through a keyed ingest route.
 
 ## Architecture summary
 
@@ -24,7 +24,7 @@ The platform ingests log streams, clusters similar errors (TF-IDF + cosine simil
 - Frontend: Next.js (App Router), TypeScript, Tailwind, Recharts, dark-mode UI.
 - Streaming: Log generation starts when the first SSE client connects and stops when the last disconnects (production). Incidents and retention are bounded by configurable caps.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for diagrams and data flow.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for diagrams and data flow. DJ ingest: [docs/INGEST.md](docs/INGEST.md).
 
 ## Technology stack
 
@@ -78,11 +78,12 @@ In production, the system behaves like a live dashboard while staying determinis
 - Incidents: Auto-resolution after idle timeout; caps on active and total incidents; oldest resolved are purged when over cap.
 - Logs: Total log rows capped (for example 5,000); oldest purged when over.
 - UI: Read-only. No Start/Stop stream, Clear all, or Mark complete. See [docs/READONLY_PRODUCTION.md](docs/READONLY_PRODUCTION.md) and [docs/INCIDENT_LIFECYCLE.md](docs/INCIDENT_LIFECYCLE.md).
+- Ingest: `POST /api/ingest/logs` is the only production write. It requires `X-Ingest-Key`. Empty key disables it.
 
 ## Security posture
 
 - HTTPS redirection and HSTS in production; global exception handling (no stack traces in responses); input validation and rate limiting; CORS restricted to configured origins; API and frontend containers run as non-root.
-- Mutation/control endpoints are not registered in production; no anonymous writes.
+- Mutation/control endpoints are not registered in production. Keyed ingest is the exception, not anonymous writes.
 
 See [docs/SECURITY.md](docs/SECURITY.md).
 
@@ -97,14 +98,14 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for branch protection and workf
 
 - SQLite: Chosen for simplicity and zero cost. Single-file, no separate DB server. For scale or multi-instance, replace with a shared store (Cosmos DB, PostgreSQL).
 - Mock AI in production: Enables zero-cost deployment. Summaries and steps are deterministic. For richer AI in private deployments, add an optional paid provider behind the same `IAIService` abstraction.
-- Read-only production: Prevents abuse and keeps the public surface minimal. Admin control stays out of the public API and UI.
+- Read-only production: Prevents abuse and keeps the public surface minimal. Admin control stays out of the public API and UI. DJ job failures enter through a shared ingest key, not the browser.
 
 ## Future evolution
 
 - Replace SQLite with a scalable store for multi-instance or high volume.
 - Add authentication (API keys, OAuth) for protected deployments.
 - Optional paid AI provider for private instances. Keep Mock-only for public zero-cost deploy.
-- Real log ingestion (file tail, webhook) alongside or instead of simulation.
+- One alert channel (email/webhook) once ingest is running in production for a week.
 
 ## Project structure
 
@@ -132,6 +133,7 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for branch protection and workf
 | GET | `/api/stream/incidents` | SSE stream | Yes |
 | GET | `/api/simulation/status` | Stream running | Yes |
 | GET | `/api/settings/ai` | Current AI provider | Yes (read-only) |
+| POST | `/api/ingest/logs` | Keyed ingest from DJ Visualizer | Yes, if `Ingest:ApiKey` is set |
 | POST | `/api/logs` | Ingest log | No (control) |
 | POST | `/api/simulation/start` | Start stream (dashboard auto-calls in dev) | No (control; not registered in prod) |
 | POST | `/api/simulation/stop` | Stop stream | No (control; not registered in prod) |
@@ -149,6 +151,7 @@ dotnet test tests/IncidentBrain.Tests/IncidentBrain.Tests.csproj
 ## Documentation
 
 - [DEMO_WALKTHROUGH](docs/DEMO_WALKTHROUGH.md): Docker click path and talking points
+- [INGEST](docs/INGEST.md): Keyed DJ log ingest
 - [ARCHITECTURE](docs/ARCHITECTURE.md): Components and data flow
 - [LOG_STREAMING_LIFECYCLE](docs/LOG_STREAMING_LIFECYCLE.md): When stream starts and stops, caps
 - [CLUSTERING_ENGINE](docs/CLUSTERING_ENGINE.md): TF-IDF, thresholds
