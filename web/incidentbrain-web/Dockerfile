@@ -26,4 +26,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
+# Next.js standalone's server.js reads HOSTNAME to decide what interface to bind to. Docker (and
+# Render) sets HOSTNAME to the container's own hostname by default, which makes the server bind to
+# that single interface instead of all of them - the app comes up and logs "Ready" while staying
+# unreachable from outside the container, which shows up as a 502 at the platform's edge rather
+# than any error the app itself ever sees.
+ENV HOSTNAME=0.0.0.0
 CMD ["node", "server.js"]
