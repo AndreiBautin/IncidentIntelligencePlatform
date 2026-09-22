@@ -59,6 +59,13 @@ public partial class TfIdfLogAnalyzer : ILogAnalyzer
                 }
             }
             var repr = messages[group[0]];
+            // group[0] is whichever distinct message happens to sort first this tick, and that
+            // drifts on its own: the 10-minute lookback keeps aging the earliest survivor out, so
+            // a still-ongoing cluster picks a new "first" message - and, unfixed, a new raw-text
+            // hash - on essentially every analysis run. Hashing the id-normalized text instead
+            // means every message in the group produces the same seed, so the cluster's identity
+            // survives that churn instead of spawning a fresh incident every ten seconds.
+            var stableIdSeed = NormalizeForIdentity(repr);
             var count = 0;
             var first = DateTime.MaxValue;
             var last = DateTime.MinValue;
@@ -70,7 +77,7 @@ public partial class TfIdfLogAnalyzer : ILogAnalyzer
                 if (log.Timestamp > last) last = log.Timestamp;
             }
             var timeBucket = first.Ticks / TimeSpan.FromMinutes(5).Ticks;
-            var stableId = $"cluster-{HashMessage(repr)}-{timeBucket}";
+            var stableId = $"cluster-{HashMessage(stableIdSeed)}-{timeBucket}";
             clusters.Add(new IncidentCluster
             {
                 Id = stableId,
@@ -150,6 +157,11 @@ public partial class TfIdfLogAnalyzer : ILogAnalyzer
             .Select(w => HexIdPattern().IsMatch(w) ? IdPlaceholder : w)
             .Where(w => w.Length > 1 && !StopWords.Contains(w));
     }
+
+    // Same id-stripping Tokenize already does, joined back into one string so it can be hashed.
+    // Two messages that differ only by an embedded id normalize to the same seed here even though
+    // their raw text (and therefore their own HashMessage result) differs.
+    private static string NormalizeForIdentity(string message) => string.Join(' ', Tokenize(message));
 
     private static string HashMessage(string message)
     {
