@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <ProjectReference Include="..\..\src\IncidentBrain.Core\IncidentBrain.Core.csproj" />
     <ProjectReference Include="..\..\src\IncidentBrain.Infrastructure\IncidentBrain.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\IncidentBrain.API\IncidentBrain.API.csproj" />
