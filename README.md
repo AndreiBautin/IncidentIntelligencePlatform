@@ -12,7 +12,7 @@ Open `http://localhost:3000`. The dashboard starts the log stream when it connec
 
 Full click path and talking points: [docs/DEMO_WALKTHROUGH.md](docs/DEMO_WALKTHROUGH.md).
 
-This repo is still private. Public toggle: [Settings](https://github.com/AndreiBautin/IncidentIntelligencePlatform/settings).
+Not deployed yet — no live demo link exists. `render.yaml` is ready; deploying is a Render blueprint apply away. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## System overview
 
