@@ -4,6 +4,8 @@ import { useMemo, useEffect, useState, useRef, type ReactNode } from "react";
 import { toast } from "sonner";
 import { getIncidents, getIncident, reanalyzeIncident, updateIncidentStatus, getStats, getRecentLogs, startSimulation, getSimulationStatus, clearAll, READ_ONLY_MODE, type Incident } from "@/lib/api";
 import { useIncidentStream } from "@/hooks/useIncidentStream";
+import { PulseRadar } from "@/components/PulseRadar";
+import { SURFACE_BASE, SURFACE_RAISED } from "@/lib/surfaces";
 import {
   AreaChart,
   Area,
@@ -406,49 +408,63 @@ export default function DashboardPage() {
     if (incidents.length === 0 && selectedIncidentId) setSelectedIncidentId(null);
   }, [incidents.length, selectedIncidentId]);
 
+  const segmentBase =
+    "flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors";
+  const segmentActive = "bg-[hsl(var(--accent))] text-zinc-950";
+  const segmentInactive = "text-zinc-400 hover:text-white";
+
   const filterControls = (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div>
-        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Status</label>
-        <select
-          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value === "" ? "" : Number(e.target.value))}
-        >
-          <option value="">All</option>
-          <option value="0">Open</option>
-          <option value="2">Resolved</option>
-        </select>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1.5">Status</label>
+        <div className="flex gap-1 rounded-lg bg-zinc-950/60 border border-zinc-800 p-1">
+          {([
+            { value: "" as const, label: "All" },
+            { value: 0 as const, label: "Open" },
+            { value: 2 as const, label: "Resolved" },
+          ]).map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setStatusFilter(opt.value)}
+              className={`${segmentBase} ${statusFilter === opt.value ? segmentActive : segmentInactive}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div>
-        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Severity</label>
-        <select
-          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm"
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-        >
-          <option value="">All</option>
-          <option value="P1">P1</option>
-          <option value="P2">P2</option>
-          <option value="P3">P3</option>
-        </select>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1.5">Severity</label>
+        <div className="flex gap-1 rounded-lg bg-zinc-950/60 border border-zinc-800 p-1">
+          {["", "P1", "P2", "P3"].map((opt) => (
+            <button
+              key={opt || "all"}
+              type="button"
+              onClick={() => setSeverityFilter(opt)}
+              className={`${segmentBase} ${severityFilter === opt ? segmentActive : segmentInactive}`}
+            >
+              {opt || "All"}
+            </button>
+          ))}
+        </div>
       </div>
       <div>
-        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Search</label>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1.5">Search</label>
         <input
           type="text"
           placeholder="Message, service..."
-          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm placeholder:text-zinc-500"
+          className="w-full bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-2 text-sm placeholder:text-zinc-600 outline-none transition-colors focus:border-[hsl(var(--accent))]/60"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
       <div>
-        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Service</label>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1.5">Service</label>
         <input
           type="text"
           placeholder="e.g. payment-service"
-          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm placeholder:text-zinc-500"
+          className="w-full bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-2 text-sm placeholder:text-zinc-600 outline-none transition-colors focus:border-[hsl(var(--accent))]/60"
           value={serviceFilter}
           onChange={(e) => setServiceFilter(e.target.value)}
         />
@@ -458,7 +474,7 @@ export default function DashboardPage() {
           type="button"
           onClick={handleClear}
           disabled={clearLoading}
-          className="px-3 py-1.5 rounded text-sm font-medium bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50"
+          className="px-3 py-2 rounded-lg text-sm font-medium bg-zinc-800 hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
           {clearLoading ? "..." : "Clear all"}
         </button>
@@ -468,33 +484,45 @@ export default function DashboardPage() {
 
   const statCards = (
     <div className="flex flex-col gap-3">
-      <div className="rounded-lg border border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/10 p-4">
-        <p className="text-xs text-[hsl(var(--accent))]/90 uppercase tracking-wider">Total incidents</p>
-        <p className="text-3xl font-semibold mt-1">{overview.total}</p>
+      <div className={`relative overflow-hidden p-5 ${SURFACE_RAISED}`}>
+        <PulseRadar />
+        <p className="relative text-xs font-medium text-[hsl(var(--accent))] uppercase tracking-wider">
+          Total incidents
+        </p>
+        <p className="relative text-5xl font-bold mt-2 tabular-nums">{overview.total}</p>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-          <p className="text-xs text-red-400/80 uppercase tracking-wider">P1</p>
-          <p className="text-xl font-semibold text-red-400 mt-0.5">{overview.p1}</p>
+        <div className={`p-3 ${SURFACE_BASE}`}>
+          <p className="flex items-center gap-1.5 text-xs text-red-400/90 uppercase tracking-wider">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+            P1
+          </p>
+          <p className="text-2xl font-bold text-red-400 mt-1 tabular-nums">{overview.p1}</p>
         </div>
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-          <p className="text-xs text-amber-400/80 uppercase tracking-wider">P2</p>
-          <p className="text-xl font-semibold text-amber-400 mt-0.5">{overview.p2}</p>
+        <div className={`p-3 ${SURFACE_BASE}`}>
+          <p className="flex items-center gap-1.5 text-xs text-amber-400/90 uppercase tracking-wider">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            P2
+          </p>
+          <p className="text-2xl font-bold text-amber-400 mt-1 tabular-nums">{overview.p2}</p>
         </div>
-        <div className="rounded-lg border border-zinc-600 bg-zinc-800/50 p-3">
-          <p className="text-xs text-zinc-400 uppercase tracking-wider">P3</p>
-          <p className="text-xl font-semibold text-zinc-300 mt-0.5">{overview.p3}</p>
+        <div className={`p-3 ${SURFACE_BASE}`}>
+          <p className="flex items-center gap-1.5 text-xs text-zinc-400 uppercase tracking-wider">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+            P3
+          </p>
+          <p className="text-2xl font-bold text-zinc-300 mt-1 tabular-nums">{overview.p3}</p>
         </div>
       </div>
       {stats != null && (
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+          <div className={`p-3 ${SURFACE_BASE}`}>
             <p className="text-xs text-zinc-500 uppercase tracking-wider">Requests</p>
-            <p className="text-lg font-semibold mt-0.5">{stats.totalRequests.toLocaleString()}</p>
+            <p className="text-lg font-semibold mt-0.5 tabular-nums">{stats.totalRequests.toLocaleString()}</p>
           </div>
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+          <div className={`p-3 ${SURFACE_BASE}`}>
             <p className="text-xs text-red-400/80 uppercase tracking-wider">Errors</p>
-            <p className="text-lg font-semibold text-red-400 mt-0.5">{stats.totalErrors.toLocaleString()}</p>
+            <p className="text-lg font-semibold text-red-400 mt-0.5 tabular-nums">{stats.totalErrors.toLocaleString()}</p>
           </div>
         </div>
       )}
@@ -513,7 +541,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
         <aside className="lg:w-72 shrink-0 flex flex-col gap-6">
           {statCards}
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+          <div className={`p-4 ${SURFACE_BASE}`}>
             <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">Filters</h2>
             {filterControls}
           </div>
@@ -522,7 +550,7 @@ export default function DashboardPage() {
         <div className="flex-1 min-w-0 flex flex-col gap-4">
 
       {(streamRunning || logLines.length > 0) && (
-        <div className="flex-shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 mb-4">
+        <div className={`flex-shrink-0 p-4 mb-4 ${SURFACE_BASE}`}>
           <h2 className="text-xs font-medium text-zinc-400 mb-1.5">{streamRunning ? "Live log stream" : "Log stream"}</h2>
           <div
             ref={logStreamRef}
@@ -555,7 +583,7 @@ export default function DashboardPage() {
       {!loading && (
         <div className="flex-shrink-0 space-y-3 mt-4">
           {incidents.length > 0 && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+          <div className={`p-3 ${SURFACE_BASE}`}>
             <h2 className="text-xs font-medium mb-2 text-zinc-400">Severity distribution</h2>
             <div className="h-7">
               <ResponsiveContainer width="100%" height="100%">
@@ -575,7 +603,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {incidents.length > 0 && timelineData.length > 0 && (
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+              <div className={`p-3 ${SURFACE_BASE}`}>
                 <h2 className="text-xs font-medium mb-2 text-zinc-400">Incidents over time</h2>
                 <div className="h-24">
                   <ResponsiveContainer width="100%" height="100%">
@@ -590,7 +618,7 @@ export default function DashboardPage() {
               </div>
             )}
             {incidents.length > 0 && byServiceData.length > 0 && (
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+              <div className={`p-3 ${SURFACE_BASE}`}>
                 <h2 className="text-xs font-medium mb-2 text-zinc-400">By service</h2>
                 <div className="h-24">
                   <ResponsiveContainer width="100%" height="100%">
@@ -604,7 +632,7 @@ export default function DashboardPage() {
               </div>
             )}
             {incidents.length > 0 && statusPieData.length > 0 && (
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+              <div className={`p-3 ${SURFACE_BASE}`}>
                 <h2 className="text-xs font-medium mb-2 text-zinc-400">Status</h2>
                 <div className="h-24">
                   <ResponsiveContainer width="100%" height="100%">
@@ -631,7 +659,7 @@ export default function DashboardPage() {
           {loading ? (
             <div className="text-zinc-500">Loading...</div>
           ) : incidents.length === 0 ? (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+            <div className={`p-8 text-center text-zinc-500 ${SURFACE_BASE}`}>
               {READ_ONLY_MODE ? "No incidents yet." : "No incidents yet. Stream runs automatically."}
             </div>
           ) : (
