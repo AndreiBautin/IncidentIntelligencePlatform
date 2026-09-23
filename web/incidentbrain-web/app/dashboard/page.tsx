@@ -406,58 +406,120 @@ export default function DashboardPage() {
     if (incidents.length === 0 && selectedIncidentId) setSelectedIncidentId(null);
   }, [incidents.length, selectedIncidentId]);
 
-  return (
-    <DashboardRoot>
-      <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {!READ_ONLY_MODE && (
-            <button
-              type="button"
-              onClick={handleClear}
-              disabled={clearLoading}
-              className="px-3 py-1.5 rounded text-sm font-medium bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50"
-            >
-              {clearLoading ? "..." : "Clear all"}
-            </button>
-          )}
-          <span className="text-sm text-zinc-500">Status</span>
-          <select
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value === "" ? "" : Number(e.target.value))}
-          >
-            <option value="">All</option>
-            <option value="0">Open</option>
-            <option value="2">Resolved</option>
-          </select>
-          <span className="text-sm text-zinc-500">Severity</span>
-          <select
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm"
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value)}
-          >
-            <option value="">All</option>
-            <option value="P1">P1</option>
-            <option value="P2">P2</option>
-            <option value="P3">P3</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm w-32 placeholder:text-zinc-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Service"
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm w-28 placeholder:text-zinc-500"
-            value={serviceFilter}
-            onChange={(e) => setServiceFilter(e.target.value)}
-          />
+  const filterControls = (
+    <div className="flex flex-col gap-3">
+      <div>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Status</label>
+        <select
+          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value === "" ? "" : Number(e.target.value))}
+        >
+          <option value="">All</option>
+          <option value="0">Open</option>
+          <option value="2">Resolved</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Severity</label>
+        <select
+          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm"
+          value={severityFilter}
+          onChange={(e) => setSeverityFilter(e.target.value)}
+        >
+          <option value="">All</option>
+          <option value="P1">P1</option>
+          <option value="P2">P2</option>
+          <option value="P3">P3</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Search</label>
+        <input
+          type="text"
+          placeholder="Message, service..."
+          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm placeholder:text-zinc-500"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-500 uppercase tracking-wider mb-1">Service</label>
+        <input
+          type="text"
+          placeholder="e.g. payment-service"
+          className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm placeholder:text-zinc-500"
+          value={serviceFilter}
+          onChange={(e) => setServiceFilter(e.target.value)}
+        />
+      </div>
+      {!READ_ONLY_MODE && (
+        <button
+          type="button"
+          onClick={handleClear}
+          disabled={clearLoading}
+          className="px-3 py-1.5 rounded text-sm font-medium bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50"
+        >
+          {clearLoading ? "..." : "Clear all"}
+        </button>
+      )}
+    </div>
+  );
+
+  const statCards = (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-lg border border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/10 p-4">
+        <p className="text-xs text-[hsl(var(--accent))]/90 uppercase tracking-wider">Total incidents</p>
+        <p className="text-3xl font-semibold mt-1">{overview.total}</p>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+          <p className="text-xs text-red-400/80 uppercase tracking-wider">P1</p>
+          <p className="text-xl font-semibold text-red-400 mt-0.5">{overview.p1}</p>
+        </div>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+          <p className="text-xs text-amber-400/80 uppercase tracking-wider">P2</p>
+          <p className="text-xl font-semibold text-amber-400 mt-0.5">{overview.p2}</p>
+        </div>
+        <div className="rounded-lg border border-zinc-600 bg-zinc-800/50 p-3">
+          <p className="text-xs text-zinc-400 uppercase tracking-wider">P3</p>
+          <p className="text-xl font-semibold text-zinc-300 mt-0.5">{overview.p3}</p>
         </div>
       </div>
+      {stats != null && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+            <p className="text-xs text-zinc-500 uppercase tracking-wider">Requests</p>
+            <p className="text-lg font-semibold mt-0.5">{stats.totalRequests.toLocaleString()}</p>
+          </div>
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+            <p className="text-xs text-red-400/80 uppercase tracking-wider">Errors</p>
+            <p className="text-lg font-semibold text-red-400 mt-0.5">{stats.totalErrors.toLocaleString()}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <DashboardRoot>
+      <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[hsl(var(--accent))] shadow-[0_0_10px_hsl(var(--accent))]" />
+          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+        <aside className="lg:w-72 shrink-0 flex flex-col gap-6">
+          {statCards}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+            <h2 className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">Filters</h2>
+            {filterControls}
+          </div>
+        </aside>
+
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
 
       {(streamRunning || logLines.length > 0) && (
         <div className="flex-shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 mb-4">
@@ -492,37 +554,6 @@ export default function DashboardPage() {
 
       {!loading && (
         <div className="flex-shrink-0 space-y-3 mt-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <div className="rounded-lg border border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/10 p-3">
-              <p className="text-xs text-[hsl(var(--accent))]/90 uppercase tracking-wider">Total incidents</p>
-              <p className="text-2xl font-semibold mt-0.5">{overview.total}</p>
-            </div>
-            {stats != null && (
-              <>
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider">Total requests</p>
-                  <p className="text-xl font-semibold mt-0.5">{stats.totalRequests.toLocaleString()}</p>
-                </div>
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-                  <p className="text-xs text-red-400/80 uppercase tracking-wider">Total errors</p>
-                  <p className="text-xl font-semibold text-red-400 mt-0.5">{stats.totalErrors.toLocaleString()}</p>
-                </div>
-              </>
-            )}
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-              <p className="text-xs text-red-400/80 uppercase tracking-wider">P1</p>
-              <p className="text-xl font-semibold text-red-400 mt-0.5">{overview.p1}</p>
-            </div>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="text-xs text-amber-400/80 uppercase tracking-wider">P2</p>
-              <p className="text-xl font-semibold text-amber-400 mt-0.5">{overview.p2}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-600 bg-zinc-800/50 p-3">
-              <p className="text-xs text-zinc-400 uppercase tracking-wider">P3</p>
-              <p className="text-xl font-semibold text-zinc-300 mt-0.5">{overview.p3}</p>
-            </div>
-          </div>
-
           {incidents.length > 0 && (
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
             <h2 className="text-xs font-medium mb-2 text-zinc-400">Severity distribution</h2>
@@ -782,6 +813,8 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        </div>
+      </div>
       </div>
     </DashboardRoot>
   );
