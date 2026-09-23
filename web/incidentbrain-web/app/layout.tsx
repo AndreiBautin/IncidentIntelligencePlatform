@@ -20,9 +20,12 @@ export default function RootLayout({
         <Toaster theme="dark" position="top-right" richColors />
         <nav className="border-b border-[hsl(var(--border))] px-6 py-4">
           <div className="flex items-center gap-6">
-            <a href="/dashboard" className="font-semibold text-lg">Incident Intelligence Platform</a>
-            <a href="/dashboard" className="text-sm text-zinc-400 hover:text-white">Dashboard</a>
-            {!readOnly && <a href="/settings" className="text-sm text-zinc-400 hover:text-white">Settings</a>}
+            <a href="/dashboard" className="flex items-center gap-2 font-semibold text-lg tracking-tight">
+              <span className="inline-block h-2 w-2 rounded-full bg-[hsl(var(--accent))] shadow-[0_0_10px_hsl(var(--accent))]" />
+              Incident Intelligence Platform
+            </a>
+            <a href="/dashboard" className="text-sm text-zinc-400 transition-colors hover:text-white">Dashboard</a>
+            {!readOnly && <a href="/settings" className="text-sm text-zinc-400 transition-colors hover:text-white">Settings</a>}
           </div>
         </nav>
         {children}

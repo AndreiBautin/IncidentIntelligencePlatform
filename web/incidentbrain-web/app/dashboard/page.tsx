@@ -48,6 +48,12 @@ const SEVERITY_BAR_COLORS: Record<string, string> = {
   P3: "#71717a",
 };
 
+const severityBorderClass: Record<string, string> = {
+  P1: "border-l-red-500",
+  P2: "border-l-amber-500",
+  P3: "border-l-zinc-600",
+};
+
 function IncidentSparkline({ errorCount, maxCount }: { errorCount: number; maxCount: number }) {
   const pct = maxCount > 0 ? Math.min(100, (errorCount / maxCount) * 100) : 0;
   return (
@@ -403,7 +409,7 @@ export default function DashboardPage() {
   return (
     <DashboardRoot>
       <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">
           {!READ_ONLY_MODE && (
             <button
@@ -487,9 +493,9 @@ export default function DashboardPage() {
       {!loading && (
         <div className="flex-shrink-0 space-y-3 mt-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Total incidents</p>
-              <p className="text-xl font-semibold mt-0.5">{overview.total}</p>
+            <div className="rounded-lg border border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/10 p-3">
+              <p className="text-xs text-[hsl(var(--accent))]/90 uppercase tracking-wider">Total incidents</p>
+              <p className="text-2xl font-semibold mt-0.5">{overview.total}</p>
             </div>
             {stats != null && (
               <>
@@ -606,7 +612,7 @@ export default function DashboardPage() {
                 <div
                   key={grp.patternKey}
                   ref={isSelected ? selectedCardRef : undefined}
-                  className={`rounded-lg border transition-all duration-150 ${isSelected ? "border-zinc-600 bg-zinc-800/50" : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-600 hover:bg-zinc-800/70"}`}
+                  className={`rounded-lg border border-l-4 transition-all duration-150 ${severityBorderClass[grp.worstSeverity] ?? "border-l-zinc-600"} ${isSelected ? "border-zinc-600 bg-zinc-800/50" : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-600 hover:bg-zinc-800/70"}`}
                 >
                   <button
                     type="button"
