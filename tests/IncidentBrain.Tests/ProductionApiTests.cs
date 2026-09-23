@@ -20,6 +20,24 @@ public class ProductionApiTests : IClassFixture<ProductionApiTests.ProductionFac
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/incidents")).StatusCode);
     }
 
+    /// <summary>
+    /// A fresh store (first boot, or a redeploy on a host with no persistent disk) otherwise leaves
+    /// a first-time visitor looking at an empty dashboard until the simulated stream and an analysis
+    /// tick produce something real. This factory always starts from a brand-new temp SQLite file, so
+    /// it exercises exactly that "never seen anything yet" path.
+    /// </summary>
+    [Fact]
+    public async Task A_brand_new_store_is_seeded_with_example_incidents()
+    {
+        var client = _factory.CreateClient();
+        var incidents = await client.GetFromJsonAsync<List<IncidentSummary>>("/api/incidents");
+        Assert.NotNull(incidents);
+        Assert.Equal(2, incidents!.Count);
+        Assert.All(incidents, i => Assert.Equal("Resolved", i.Status));
+    }
+
+    private sealed record IncidentSummary(string Status);
+
     [Fact]
     public async Task Control_routes_are_not_registered()
     {

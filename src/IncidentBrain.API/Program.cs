@@ -123,6 +123,25 @@ using (var scope = app.Services.CreateScope())
     await conn.CloseAsync();
 }
 
+// The simulated stream only starts once a dashboard connects, and this store has no persistent
+// disk - so a store with nothing in it yet (first boot, or right after a redeploy) leaves a
+// first-time visitor looking at an empty dashboard for however long that takes. Seeding two
+// already-resolved example incidents removes that gap without ever overwriting anything real:
+// this only fires when the store is completely empty, the same "fill if empty, never wipe and
+// replace" rule already followed elsewhere in this codebase.
+using (var scope = app.Services.CreateScope())
+{
+    var store = scope.ServiceProvider.GetRequiredService<IIncidentStore>();
+    var existing = await store.ListAsync(new IncidentFilter(), CancellationToken.None);
+    if (existing.Count == 0)
+    {
+        foreach (var incident in DemoSeedData.BuildExampleIncidents(DateTime.UtcNow))
+        {
+            await store.AddIncidentAsync(incident, CancellationToken.None);
+        }
+    }
+}
+
 app.UseCors();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", version = "1.0" }));
