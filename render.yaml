@@ -23,6 +23,15 @@ services:
       # Empty = ingest disabled (503). After deploy, set the same secret on DJ as Ops__IngestKey.
       - key: Ingest__ApiKey
         value: ""
+      # appsettings.Production.json ships Cors:AllowedOrigins as [] on purpose (fail closed, not
+      # open, when nothing is configured) - so the dashboard's own origin has to be added here or
+      # every browser fetch from it is blocked by CORS while curl/server-to-server calls work fine,
+      # which is exactly the gap that let "No incidents yet" ship looking like an empty database.
+      - key: Cors__AllowedOrigins__0
+        fromService:
+          type: web
+          name: incident-web
+          envVarKey: RENDER_EXTERNAL_URL
   - type: web
     name: incident-web
     runtime: docker
