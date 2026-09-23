@@ -33,7 +33,22 @@ public class ProductionApiTests : IClassFixture<ProductionApiTests.ProductionFac
         var incidents = await client.GetFromJsonAsync<List<IncidentSummary>>("/api/incidents");
         Assert.NotNull(incidents);
         Assert.Equal(2, incidents!.Count);
-        Assert.All(incidents, i => Assert.Equal("Resolved", i.Status));
+        Assert.Contains(incidents, i => i.Status == "Open");
+        Assert.Contains(incidents, i => i.Status == "Resolved");
+    }
+
+    /// <summary>
+    /// The dashboard's own default view filters to Status=Open (?status=0) - this is the query a
+    /// first-time visitor's browser actually makes, not just the unfiltered API. Seeding only
+    /// Resolved incidents would still leave that specific view empty.
+    /// </summary>
+    [Fact]
+    public async Task The_default_open_filtered_view_is_not_empty_on_a_brand_new_store()
+    {
+        var client = _factory.CreateClient();
+        var incidents = await client.GetFromJsonAsync<List<IncidentSummary>>("/api/incidents?status=0");
+        Assert.NotNull(incidents);
+        Assert.NotEmpty(incidents!);
     }
 
     private sealed record IncidentSummary(string Status);

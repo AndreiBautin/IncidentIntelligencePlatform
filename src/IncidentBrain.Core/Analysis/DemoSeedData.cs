@@ -1,12 +1,15 @@
 namespace IncidentBrain.Core.Analysis;
 
 /// <summary>
-/// Two illustrative, already-resolved incidents for a store that has never held anything. The
-/// simulated stream only starts once a dashboard connects, and this store has no persistent disk,
-/// so a first-time visitor can otherwise land on a genuinely empty dashboard for the several
-/// seconds (or, right after a redeploy, indefinitely) it takes the stream and the analysis tick to
-/// produce something real. Resolved rather than Open, so they read as history rather than an
-/// outage nobody is fixing, and the idle-auto-resolve hosted service has nothing to do with them.
+/// Two illustrative incidents for a store that has never held anything. The simulated stream only
+/// starts once a dashboard connects, and this store has no persistent disk, so a first-time visitor
+/// can otherwise land on a genuinely empty dashboard for the several seconds (or, right after a
+/// redeploy, indefinitely) it takes the stream and the analysis tick to produce something real.
+///
+/// One of each status, not two Resolved - the dashboard's default filter is Status=Open, so seeding
+/// only history would still show an empty list on the view most visitors land on first. The Open
+/// one auto-resolves itself after the configured idle window (production: 15 minutes), same as any
+/// other incident nobody is actively updating; that is correct rather than something to work around.
 /// Dates are relative to <paramref name="now"/> so the seed never reads as stale.
 /// </summary>
 public static class DemoSeedData
@@ -41,13 +44,13 @@ public static class DemoSeedData
             {
                 Id = "example-cdn-edge-ioexception",
                 AffectedService = "cdn-edge",
-                StartTime = now.AddHours(-2).AddMinutes(-15),
-                EndTime = now.AddHours(-2),
+                StartTime = now.AddMinutes(-6),
+                EndTime = null,
                 ErrorCount = 6,
                 TopErrorPattern = "System.IO.IOException: Unable to read data from the transport connection",
                 Severity = Domain.Severity.P2,
-                Status = Domain.IncidentStatus.Resolved,
-                Summary = "Elevated errors in cdn-edge: System.IO.IOException: Unable to read data from the transport connection. Error count: 6. Severity: P2. Status: Resolved.",
+                Status = Domain.IncidentStatus.Open,
+                Summary = "Elevated errors in cdn-edge: System.IO.IOException: Unable to read data from the transport connection. Error count: 6. Severity: P2. Status: Open.",
                 SuggestedSteps = new[]
                 {
                     "Check recent deployments for cdn-edge",
@@ -55,8 +58,8 @@ public static class DemoSeedData
                     "Review logs matching pattern: System.IO.IOException: Unable to read data fr...",
                     "Verify dependencies and downstream services",
                 },
-                CreatedAt = now.AddHours(-2).AddMinutes(-14),
-                UpdatedAt = now.AddHours(-2),
+                CreatedAt = now.AddMinutes(-6),
+                UpdatedAt = now.AddMinutes(-6),
             },
         };
     }
