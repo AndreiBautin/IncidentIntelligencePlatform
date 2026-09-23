@@ -21,11 +21,13 @@ Render can build a private GitHub repo if the GitHub account is already connecte
 
 - API: Production, Mock AI, SQLite at `/data/incidentbrain.db`.
 - Web: `NEXT_PUBLIC_READ_ONLY=true`, `NEXT_PUBLIC_API_URL` taken from the API service public URL at build time.
-- `Ingest__ApiKey` starts empty, so keyed ingest is off until you set it.
+- `Ingest__ApiKey` starts empty, so keyed ingest is off until you set it. **Left empty on this deployment on purpose** — the public demo runs on the simulated stream only, never another app's real production data on an unauthenticated dashboard. See "System overview" in the root README.
 
 Free instances have no persistent disk. SQLite resets when the API box sleeps. That is acceptable for a public demo. Do not treat the hosted data as durable.
 
-## After deploy: DJ ingest
+## DJ ingest, for a private instance only
+
+The steps below wire real DJ Visualizer failures into a running instance. Do this on a separate, authenticated deployment - not the public one above - or you are back to piping one app's production telemetry into an unauthenticated dashboard. The `dj-ingest-live-instance` branch (both repos) already has it wired; these are the steps if you're standing up your own.
 
 1. Generate a long random string.
 2. On `incident-api`, set `Ingest__ApiKey` to that string.

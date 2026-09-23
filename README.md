@@ -16,7 +16,9 @@ Live: [incident-web-5edt.onrender.com](https://incident-web-5edt.onrender.com). 
 
 ## System overview
 
-The platform ingests log streams, clusters similar errors (TF-IDF + cosine similarity), detects spikes, and creates incidents with AI-generated summaries and investigation steps. The dashboard shows incidents in real time via Server-Sent Events (SSE). Production runs in read-only mode: public users see a live, bounded dashboard without control over the stream or data. DJ Visualizer can post job failures through a keyed ingest route.
+The platform ingests log streams, clusters similar errors (TF-IDF + cosine similarity), detects spikes, and creates incidents with AI-generated summaries and investigation steps. The dashboard shows incidents in real time via Server-Sent Events (SSE). Production runs in read-only mode: public users see a live, bounded dashboard without control over the stream or data.
+
+A companion project, DJ Visualizer, can post its job failures through a keyed ingest route (`docs/INGEST.md`) - implemented on both sides and verified end to end. **It is deliberately not wired to this public deployment.** The public demo runs on the simulated stream only, so nobody else's real production telemetry ever reaches an unauthenticated public dashboard. The `dj-ingest-live-instance` branch (both repos) is where it is live, for a private, authenticated instance.
 
 ## Architecture summary
 
@@ -78,7 +80,7 @@ In production, the system behaves like a live dashboard while staying determinis
 - Incidents: Auto-resolution after idle timeout; caps on active and total incidents; oldest resolved are purged when over cap.
 - Logs: Total log rows capped (for example 5,000); oldest purged when over.
 - UI: Read-only. No Start/Stop stream, Clear all, or Mark complete. See [docs/READONLY_PRODUCTION.md](docs/READONLY_PRODUCTION.md) and [docs/INCIDENT_LIFECYCLE.md](docs/INCIDENT_LIFECYCLE.md).
-- Ingest: `POST /api/ingest/logs` is the only production write. It requires `X-Ingest-Key`. Empty key disables it.
+- Ingest: `POST /api/ingest/logs` is the only production write, and the only production write that isn't dashboard-triggered. It requires `X-Ingest-Key`; the key is unset on this deployment, so the route answers 503 here. See "System overview" above.
 
 ## Security posture
 
@@ -98,7 +100,8 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for branch protection and workf
 
 - SQLite: Chosen for simplicity and zero cost. Single-file, no separate DB server. For scale or multi-instance, replace with a shared store (Cosmos DB, PostgreSQL).
 - Mock AI in production: Enables zero-cost deployment. Summaries and steps are deterministic. For richer AI in private deployments, add an optional paid provider behind the same `IAIService` abstraction.
-- Read-only production: Prevents abuse and keeps the public surface minimal. Admin control stays out of the public API and UI. DJ job failures enter through a shared ingest key, not the browser.
+- Read-only production: Prevents abuse and keeps the public surface minimal. Admin control stays out of the public API and UI.
+- Ingest disabled on the public deployment: the shared-key route exists and is tested (`docs/INGEST.md`), but this deployment's key is unset, so a caller gets 503 rather than a real credential to guess at or a write path to abuse. Enabling it is one env var; see the `dj-ingest-live-instance` branch for a private instance that does.
 
 ## Future evolution
 
@@ -133,7 +136,7 @@ See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for branch protection and workf
 | GET | `/api/stream/incidents` | SSE stream | Yes |
 | GET | `/api/simulation/status` | Stream running | Yes |
 | GET | `/api/settings/ai` | Current AI provider | Yes (read-only) |
-| POST | `/api/ingest/logs` | Keyed ingest from DJ Visualizer | Yes, if `Ingest:ApiKey` is set |
+| POST | `/api/ingest/logs` | Keyed ingest from DJ Visualizer | Yes if `Ingest:ApiKey` is set; unset (503) on this deployment |
 | POST | `/api/logs` | Ingest log | No (control) |
 | POST | `/api/simulation/start` | Start stream (dashboard auto-calls in dev) | No (control; not registered in prod) |
 | POST | `/api/simulation/stop` | Stop stream | No (control; not registered in prod) |

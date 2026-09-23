@@ -32,6 +32,9 @@ SQLite and the in-memory subscriber list will not share. That is the honest limi
 Where are the tests?
 `tests/IncidentBrain.Tests` plus `web/incidentbrain-web/lib/readOnlyMode.test.mjs`. CI prints coverlet line-rate. See `docs/TESTING.md`.
 
+DJ Visualizer posts here - why doesn't the live dashboard show it?
+It's implemented and verified end to end on both sides (see `docs/INGEST.md`), and deliberately not wired to this deployment. Piping one app's real production failures into an unauthenticated public dashboard is a bad habit even when the content is safe - `Ingest:ApiKey` is unset here so the route 503s, and the public demo stays on the simulated stream only. The `dj-ingest-live-instance` branch is where it's live, for a private, authenticated instance.
+
 ## Bounded demo
 
 Retention caps, Mock AI, and read-only production keep a free host cheap and safe to leave public.

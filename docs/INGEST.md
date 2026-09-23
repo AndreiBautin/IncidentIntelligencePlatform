@@ -4,6 +4,8 @@ Production is read-only for browsers. The one write that stays registered is `PO
 
 DJ Visualizer posts job failures here. The hosted processor clusters them the same way it clusters simulator logs, so a burst of failed renders becomes an incident on the dashboard.
 
+Verified end to end against both live deployments: ten repeated DJ Visualizer failures clustered into one stable incident, visible on the dashboard, with no duplicates across repeated analysis ticks. **`Ingest:ApiKey` is unset on the public deployment** — the route answers 503 there on purpose, so the public demo runs on the simulated stream only and never carries another app's real production data on an unauthenticated dashboard. The `dj-ingest-live-instance` branch (both repos) is where the key is set, for a private, authenticated instance.
+
 ## Contract
 
 ```
