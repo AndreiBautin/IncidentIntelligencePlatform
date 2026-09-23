@@ -151,11 +151,11 @@ public class LogProcessorHostedService : BackgroundService
         var effectiveClusterThreshold = IncidentCreationPolicy.EffectiveClusterSizeThreshold(sensitivity, _options.ClusterSizeThreshold);
         var spikesToCreate = IncidentCreationPolicy.SelectSpikes(spikes, sensitivity);
 
-        var toCreate = new List<(Incident Incident, IncidentCluster? Cluster)>();
+        var spikeCandidates = new List<(Incident Incident, IncidentCluster? Cluster)>();
 
         foreach (var spike in spikesToCreate)
         {
-            toCreate.Add((new Incident
+            spikeCandidates.Add((new Incident
             {
                 Id = Guid.NewGuid().ToString(),
                 AffectedService = spike.Service,
@@ -169,12 +169,14 @@ public class LogProcessorHostedService : BackgroundService
             }, null));
         }
 
+        var clusterCandidates = new List<(Incident Incident, IncidentCluster? Cluster)>();
+
         foreach (var cluster in clusters.Where(c => c.Count >= effectiveClusterThreshold))
         {
             var existing = await store.ListAsync(new IncidentFilter { From = cluster.FirstSeen.AddMinutes(-5), To = cluster.LastSeen.AddMinutes(5) }, ct);
             if (existing.Any(i => i.ClusterId == cluster.Id)) continue;
             var serviceForCluster = recentErrors.FirstOrDefault(l => l.Message == cluster.RepresentativeMessage)?.Service ?? "unknown";
-            toCreate.Add((new Incident
+            clusterCandidates.Add((new Incident
             {
                 Id = Guid.NewGuid().ToString(),
                 AffectedService = serviceForCluster,
@@ -189,6 +191,7 @@ public class LogProcessorHostedService : BackgroundService
             }, cluster));
         }
 
+        var toCreate = IncidentCreationPolicy.InterleaveByCreationBudget(spikeCandidates, clusterCandidates);
         var capped = toCreate.Take(MaxIncidentsPerAnalysisRun).ToList();
         if (capped.Count > 0)
             _logger.LogInformation("Clustering: creating {Count} incidents from {Clusters} clusters and {Spikes} spikes, threshold={Threshold}", capped.Count, toCreate.Count(x => x.Cluster != null), toCreate.Count(x => x.Cluster == null), effectiveClusterThreshold);

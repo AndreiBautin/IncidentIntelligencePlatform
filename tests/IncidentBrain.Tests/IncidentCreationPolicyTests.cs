@@ -49,4 +49,35 @@ public class IncidentCreationPolicyTests
     {
         Assert.Equal(expected, IncidentCreationPolicy.SeverityForClusterSize(count));
     }
+
+    /// <summary>
+    /// Reproduces a real production case: a busy simulated stream produced far more spikes than the
+    /// fixed per-tick creation budget every analysis run, and concatenating spikes before clusters let
+    /// that volume alone starve a real, deduplicated ten-message DJ Visualizer cluster out of every
+    /// tick for over a minute. A cluster candidate must never sit further back than second regardless
+    /// of how many spikes arrived first.
+    /// </summary>
+    [Fact]
+    public void Interleave_puts_a_cluster_candidate_no_further_back_than_second_however_many_spikes_lead()
+    {
+        var manySpikes = Enumerable.Range(0, 9).Select(i => $"spike{i}").ToList();
+        var oneCluster = new List<string> { "cluster0" };
+
+        var interleaved = IncidentCreationPolicy.InterleaveByCreationBudget(manySpikes, oneCluster);
+
+        Assert.Equal("spike0", interleaved[0]);
+        Assert.Equal("cluster0", interleaved[1]);
+        Assert.Equal(10, interleaved.Count);
+    }
+
+    [Fact]
+    public void Interleave_keeps_every_candidate_when_neither_side_is_empty()
+    {
+        var spikes = new List<string> { "s0", "s1" };
+        var clusters = new List<string> { "c0", "c1", "c2" };
+
+        var interleaved = IncidentCreationPolicy.InterleaveByCreationBudget(spikes, clusters);
+
+        Assert.Equal(new[] { "s0", "c0", "s1", "c1", "c2" }, interleaved);
+    }
 }
